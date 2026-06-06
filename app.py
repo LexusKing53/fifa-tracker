@@ -519,7 +519,7 @@ with tab1:
     st.markdown("<div class='section-title'>MATCH FIXTURES</div>", unsafe_allow_html=True)
 
     groups_list = sorted(st.session_state.matches["Group"].unique())
-    sel_group = st.selectbox("Filter by Group", ["All Groups"] + [f"Group {g}" for g in groups_list])
+    sel_group = st.selectbox("Filter by Group", ["All Groups"] + [f"Group {g}" for g in groups_list], key="fixtures_group_filter")
 
     display_df = st.session_state.matches.copy()
     if sel_group != "All Groups":
@@ -795,7 +795,7 @@ with tab6:
 
     # Group filter
     all_groups = sorted(st.session_state.matches["Group"].unique())
-    group_filter = st.selectbox("Filter by Group", ["All Groups"] + [f"Group {g}" for g in all_groups])
+    group_filter = st.selectbox("Filter by Group", ["All Groups"] + [f"Group {g}" for g in all_groups], key="squads_group_filter")
 
     # Build team list filtered by group
     if group_filter != "All Groups":
