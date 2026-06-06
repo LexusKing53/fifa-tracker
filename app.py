@@ -41,6 +41,65 @@ FLAGS = {
     "Bolivia": "🇧🇴", "Cuba": "🇨🇺", "El Salvador": "🇸🇻", "Nicaragua": "🇳🇮",
 }
 
+# ── SPINNING BALL CSS ────────────────────────────────────────────────────────
+SPIN_BALL = """<span style='display:inline-block;animation:spin 2s linear infinite;font-size:3.5rem'>⚽</span>
+<style>@keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }</style>"""
+
+# ── KEY PLAYERS ──────────────────────────────────────────────────────────────
+KEY_PLAYERS = {
+    "Argentina":   [("Lionel Messi","Forward","Inter Miami"),("Julián Álvarez","Forward","Atlético Madrid"),("Rodrigo De Paul","Midfielder","Atlético Madrid"),("Emiliano Martínez","Goalkeeper","Aston Villa"),("Enzo Fernández","Midfielder","Chelsea")],
+    "France":      [("Kylian Mbappé","Forward","Real Madrid"),("Antoine Griezmann","Forward","Atlético Madrid"),("Aurélien Tchouaméni","Midfielder","Real Madrid"),("Mike Maignan","Goalkeeper","AC Milan"),("Warren Zaïre-Emery","Midfielder","PSG")],
+    "Brazil":      [("Vinícius Jr.","Forward","Real Madrid"),("Rodrygo","Forward","Real Madrid"),("Endrick","Forward","Real Madrid"),("Alisson","Goalkeeper","Liverpool"),("Bruno Guimarães","Midfielder","Newcastle")],
+    "England":     [("Harry Kane","Forward","Bayern Munich"),("Jude Bellingham","Midfielder","Real Madrid"),("Bukayo Saka","Forward","Arsenal"),("Phil Foden","Midfielder","Man City"),("Jordan Pickford","Goalkeeper","Everton")],
+    "Spain":       [("Lamine Yamal","Forward","Barcelona"),("Pedri","Midfielder","Barcelona"),("Rodri","Midfielder","Man City"),("Álvaro Morata","Forward","AC Milan"),("Unai Simón","Goalkeeper","Athletic Club")],
+    "Germany":     [("Florian Wirtz","Midfielder","Bayer Leverkusen"),("Jamal Musiala","Midfielder","Bayern Munich"),("Kai Havertz","Forward","Arsenal"),("Manuel Neuer","Goalkeeper","Bayern Munich"),("Joshua Kimmich","Midfielder","Bayern Munich")],
+    "Portugal":    [("Cristiano Ronaldo","Forward","Al Nassr"),("Bruno Fernandes","Midfielder","Man United"),("Rúben Dias","Defender","Man City"),("Vitinha","Midfielder","PSG"),("Rafael Leão","Forward","AC Milan")],
+    "Netherlands": [("Virgil van Dijk","Defender","Liverpool"),("Memphis Depay","Forward","Atlético Madrid"),("Xavi Simons","Midfielder","RB Leipzig"),("Cody Gakpo","Forward","Liverpool"),("Tijjani Reijnders","Midfielder","AC Milan")],
+    "Belgium":     [("Romelu Lukaku","Forward","Napoli"),("Kevin De Bruyne","Midfielder","Man City"),("Thibaut Courtois","Goalkeeper","Real Madrid"),("Dodi Lukebakio","Forward","Sevilla"),("Axel Witsel","Midfielder","Atlético Madrid")],
+    "Morocco":     [("Achraf Hakimi","Defender","PSG"),("Hakim Ziyech","Forward","Galatasaray"),("Youssef En-Nesyri","Forward","Fenerbahçe"),("Sofyan Amrabat","Midfielder","Fiorentina"),("Bilal El Khannouss","Midfielder","Genk")],
+    "United States":[("Christian Pulisic","Forward","AC Milan"),("Tyler Adams","Midfielder","Bournemouth"),("Weston McKennie","Midfielder","Juventus"),("Ricardo Pepi","Forward","PSV"),("Matt Turner","Goalkeeper","Crystal Palace")],
+    "Mexico":      [("Hirving Lozano","Forward","PSV"),("Guillermo Ochoa","Goalkeeper","Club América"),("Edson Álvarez","Midfielder","West Ham"),("Santiago Giménez","Forward","AC Milan"),("César Montes","Defender","Espanyol")],
+    "Canada":      [("Alphonso Davies","Defender","Bayern Munich"),("Jonathan David","Forward","Lille"),("Tajon Buchanan","Forward","Inter Milan"),("Milan Borjan","Goalkeeper","Red Star Belgrade"),("Ismaël Koné","Midfielder","Marseille")],
+    "Japan":       [("Takefusa Kubo","Forward","Real Sociedad"),("Ritsu Doan","Forward","SC Freiburg"),("Wataru Endo","Midfielder","Liverpool"),("Shuichi Gonda","Goalkeeper","Shimizu S-Pulse"),("Hidemasa Morita","Midfielder","Sporting CP")],
+    "South Korea": [("Son Heung-min","Forward","LAFC"),("Lee Kang-in","Midfielder","PSG"),("Kim Min-jae","Defender","Bayern Munich"),("Cho Gue-sung","Forward","Midtjylland"),("Hwang Hee-chan","Forward","Wolves")],
+    "Australia":   [("Mathew Ryan","Goalkeeper","AZ Alkmaar"),("Mathew Leckie","Forward","Melbourne City"),("Jackson Irvine","Midfielder","St. Pauli"),("Harry Souttar","Defender","Leicester"),("Nestory Irankunda","Forward","Bayern Munich")],
+    "Senegal":     [("Sadio Mané","Forward","Al Nassr"),("Édouard Mendy","Goalkeeper","Al Ahli"),("Kalidou Koulibaly","Defender","Al Hilal"),("Idrissa Gueye","Midfielder","Everton"),("Ismaïla Sarr","Forward","Crystal Palace")],
+    "Uruguay":     [("Federico Valverde","Midfielder","Real Madrid"),("Darwin Núñez","Forward","Liverpool"),("Ronald Araújo","Defender","Barcelona"),("Rodrigo Bentancur","Midfielder","Tottenham"),("José María Giménez","Defender","Atlético Madrid")],
+    "Colombia":    [("James Rodríguez","Midfielder","Rayo Vallecano"),("Luis Díaz","Forward","Liverpool"),("Davinson Sánchez","Defender","Galatasaray"),("Richard Ríos","Midfielder","Palmeiras"),("Juan Cuadrado","Forward","Inter Miami")],
+    "Ecuador":     [("Moisés Caicedo","Midfielder","Chelsea"),("Enner Valencia","Forward","LDU Quito"),("Piero Hincapié","Defender","Bayer Leverkusen"),("Jeremy Sarmiento","Forward","Brighton"),("Gonzalo Plata","Forward","Valladolid")],
+    "Switzerland": [("Granit Xhaka","Midfielder","Bayer Leverkusen"),("Xherdan Shaqiri","Forward","Chicago Fire"),("Manuel Akanji","Defender","Man City"),("Breel Embolo","Forward","Monaco"),("Yann Sommer","Goalkeeper","Inter Milan")],
+    "Croatia":     [("Luka Modrić","Midfielder","Real Madrid"),("Ivan Perišić","Forward","Hajduk Split"),("Mateo Kovačić","Midfielder","Man City"),("Dominik Livaković","Goalkeeper","Fenerbahçe"),("Joško Gvardiol","Defender","Man City")],
+    "Denmark":     [("Christian Eriksen","Midfielder","Man United"),("Pierre-Emile Højbjerg","Midfielder","Marseille"),("Rasmus Højlund","Forward","Man United"),("Kasper Schmeichel","Goalkeeper","Anderlecht"),("Joakim Mæhle","Defender","Atalanta")],
+    "Poland":      [("Robert Lewandowski","Forward","Barcelona"),("Piotr Zieliński","Midfielder","Inter Milan"),("Wojciech Szczęsny","Goalkeeper","Barcelona"),("Jakub Kiwior","Defender","Arsenal"),("Nicola Zalewski","Midfielder","Roma")],
+    "Serbia":      [("Aleksandar Mitrović","Forward","Al Hilal"),("Dušan Vlahović","Forward","Juventus"),("Nemanja Gudelj","Midfielder","Sevilla"),("Vanja Milinković-Savić","Goalkeeper","Torino"),("Dušan Tadić","Midfielder","Fenerbahçe")],
+    "Iran":        [("Sardar Azmoun","Forward","Bayer Leverkusen"),("Alireza Jahanbakhsh","Forward","Feyenoord"),("Mehdi Taremi","Forward","Inter Milan"),("Ali Beiranvand","Goalkeeper","Persepolis"),("Saman Ghoddos","Midfielder","Brentford")],
+    "Saudi Arabia":[("Salem Al-Dawsari","Forward","Al Hilal"),("Mohammed Al-Owais","Goalkeeper","Al Hilal"),("Saud Abdulhamid","Defender","Roma"),("Firas Al-Buraikan","Forward","Al Fateh"),("Saleh Al-Shehri","Forward","Al Hilal")],
+    "Ghana":       [("Jordan Ayew","Forward","Crystal Palace"),("Thomas Partey","Midfielder","Arsenal"),("André Ayew","Forward","Le Havre"),("Mohammed Kudus","Forward","West Ham"),("Lawrence Ati-Zigi","Goalkeeper","St. Gallen")],
+    "Ivory Coast": [("Sébastien Haller","Forward","Dortmund"),("Franck Kessié","Midfielder","Barcelona"),("Serge Aurier","Defender","Villarreal"),("Wilfried Zaha","Forward","Galatasaray"),("Maxwel Cornet","Forward","Southampton")],
+    "Egypt":       [("Mohamed Salah","Forward","Liverpool"),("Mohamed El Shenawy","Goalkeeper","Al Ahly"),("Ahmed Hegazy","Defender","Al Ittihad"),("Trezeguet","Forward","Istanbul Başakşehir"),("Amr El Sulaya","Midfielder","Al Ahly")],
+    "Nigeria":     [("Victor Osimhen","Forward","Napoli"),("Wilfred Ndidi","Midfielder","Leicester"),("Alex Iwobi","Midfielder","Fulham"),("Stanley Nwabali","Goalkeeper","Chippa United"),("Semi Ajayi","Defender","West Brom")],
+    "Scotland":    [("Andrew Robertson","Defender","Liverpool"),("Scott McTominay","Midfielder","Napoli"),("Kieran Tierney","Defender","Real Sociedad"),("Angus Gunn","Goalkeeper","Norwich"),("John McGinn","Midfielder","Aston Villa")],
+    "Turkey":      [("Hakan Çalhanoğlu","Midfielder","Inter Milan"),("Arda Güler","Midfielder","Real Madrid"),("Kenan Yıldız","Forward","Juventus"),("Çağlar Söyüncü","Defender","Atlético Madrid"),("Mert Günok","Goalkeeper","Beşiktaş")],
+    "Austria":     [("David Alaba","Defender","Real Madrid"),("Marcel Sabitzer","Midfielder","Dortmund"),("Marko Arnautović","Forward","Man United"),("Konrad Laimer","Midfielder","Bayern Munich"),("Patrick Pentz","Goalkeeper","Bayer Leverkusen")],
+    "Ukraine":     [("Oleksandr Zinchenko","Defender","Arsenal"),("Mykhailo Mudryk","Forward","Chelsea"),("Viktor Tsygankov","Forward","Girona"),("Georgiy Sudakov","Midfielder","Shakhtar"),("Andriy Lunin","Goalkeeper","Real Madrid")],
+    "Paraguay":    [("Miguel Almirón","Midfielder","Newcastle"),("Matías Villasanti","Midfielder","Grêmio"),("Gustavo Gómez","Defender","Palmeiras"),("Antony Silva","Goalkeeper","Olimpia"),("Antonio Sanabria","Forward","Torino")],
+    "Norway":      [("Erling Haaland","Forward","Man City"),("Martin Ødegaard","Midfielder","Arsenal"),("Alexander Sørloth","Forward","Atlético Madrid"),("Sander Berge","Midfielder","Burnley"),("Ørjan Nyland","Goalkeeper","Southampton")],
+    "Algeria":     [("Riyad Mahrez","Forward","Al Ahli"),("Ismaël Bennacer","Midfielder","AC Milan"),("Youcef Atal","Defender","Nice"),("Andy Delort","Forward","Nice"),("Aïssa Mandi","Defender","Villarreal")],
+    "New Zealand": [("Chris Wood","Forward","Nottingham Forest"),("Clayton Lewis","Midfielder","Club Brugge"),("Bill Tuilagi","Forward","Adelaide United"),("Finn Surman","Midfielder","Real Madrid"),("Max Crocombe","Goalkeeper","Celta Vigo")],
+    "Qatar":       [("Akram Afif","Forward","Al Sadd"),("Almoez Ali","Forward","Al Duhail"),("Hassan Al-Haydos","Midfielder","Al Sadd"),("Meshaal Barsham","Goalkeeper","Al Sadd"),("Boualem Khoukhi","Defender","Al Sadd")],
+    "Cape Verde":  [("Gelson Martins","Forward","Monaco"),("Garry Rodrigues","Forward","Galatasaray"),("Ryan Mendes","Forward","Lille"),("Júnior Alves","Midfielder","Arouca"),("Vozinha","Goalkeeper","Celta Vigo")],
+    "Iraq":        [("Aymen Hussein","Forward","Al Zawraa"),("Amjed Attwan","Midfielder","Al Shorta"),("Dundar Mawlood","Goalkeeper","Erbil SC"),("Ali Adnan","Defender","Deportivo La Coruña"),("Ahmed Yasin","Midfielder","Al Zawraa")],
+    "Jordan":      [("Yazan Al-Naimat","Forward","Al Faisaly"),("Ahmad Haikal","Midfielder","Shabab Al Ordun"),("Hamza Aldarawsheh","Midfielder","Al Ain"),("Mohamad Abu Laila","Defender","Swarovski Tirol"),("Zaid Abu Laila","Forward","Hapoel Haifa")],
+    "Uzbekistan":  [("Abdukodir Khusanov","Defender","Man City"),("Eldor Shomurodov","Forward","Roma"),("Jaloliddin Masharipov","Forward","Al Nojoom"),("Otabek Shukurov","Midfielder","Pakhtakor"),("Hamza Kamolov","Midfielder","Pakhtakor")],
+    "DR Congo":    [("Cédric Bakambu","Forward","Marseille"),("Chancel Mbemba","Defender","Marseille"),("Arthur Masuaku","Defender","Besiktas"),("Silas","Forward","VfB Stuttgart"),("Gaël Kakuta","Midfielder","Amiens")],
+    "Tunisia":     [("Wahbi Khazri","Forward","Montpellier"),("Youssef Msakni","Forward","Al Arabi"),("Hannibal Mejbri","Midfielder","Burnley"),("Aymen Dahmen","Goalkeeper","SC Freiburg"),("Ali Maâloul","Defender","Al Ahly")],
+    "Haiti":       [("Nazon","Forward","Charlotte FC"),("Mechack Jérôme","Defender","Pittsburgh Riverhounds"),("Kervens Belfort","Midfielder","FC Metz"),("Duckens Nazon","Forward","Sochaux"),("Frantzdy Pierrot","Forward","Cincinnati")],
+    "Panama":      [("Rolando Blackburn","Forward","Nottm Forest"),("Roderick Miller","Midfielder","Sporting KC"),("Anibal Godoy","Midfielder","Nashville SC"),("Orlando Mosquera","Goalkeeper","FC Dallas"),("Adalberto Carrasquilla","Midfielder","Hartford Athletic")],
+    "Bosnia and Herzegovina":[("Edin Džeko","Forward","Fenerbahçe"),("Miralem Pjanić","Midfielder","Sharjah"),("Aleksandar Đorđević","Defender","Sparta Prague"),("Nikola Jurčević","Goalkeeper","Dinamo Zagreb"),("Vedran Ćorluka","Defender","Lokomotiv Moscow")],
+    "Curacao":     [("Juriën Timber","Defender","Arsenal"),("Leandro Bacuna","Midfielder","Cardiff City"),("Cuco Martina","Defender","Stoke City"),("Quentin Boisgard","Forward","Nantes"),("Elson Hooi","Forward","ADO Den Haag")],
+    "Scotland":    [("Andrew Robertson","Defender","Liverpool"),("Scott McTominay","Midfielder","Napoli"),("Kieran Tierney","Defender","Real Sociedad"),("Angus Gunn","Goalkeeper","Norwich"),("John McGinn","Midfielder","Aston Villa")],
+}
+
 def flag(team):
     return FLAGS.get(team, "🏳️")
 
@@ -404,12 +463,20 @@ st.session_state.matches = st.session_state.matches.apply(compute_match_outcome,
 standings = build_standings(st.session_state.matches)
 
 # ── HEADER ────────────────────────────────────────────────────────────────────
-col_logo, col_title = st.columns([1, 8])
-with col_logo:
-    st.markdown("<div style='font-size:4rem;padding-top:0.2rem'>⚽</div>", unsafe_allow_html=True)
-with col_title:
-    st.markdown("<h1 style='font-size:3.5rem;margin:0;color:#F7C948'>FIFA WORLD CUP 2026</h1>", unsafe_allow_html=True)
-    st.markdown(f"<p style='color:#5a6a8a;margin:0;font-size:0.85rem'>🔄 Updated {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>", unsafe_allow_html=True)
+st.markdown("""
+<style>
+@keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+.spin-ball { display:inline-block; animation:spin 2s linear infinite; font-size:3.5rem; line-height:1; }
+</style>
+<div style='display:flex;align-items:center;gap:1rem;padding:0.5rem 0'>
+    <span class='spin-ball'>⚽</span>
+    <div>
+        <h1 style='font-size:3.5rem;margin:0;color:#F7C948;font-family:Bebas Neue,sans-serif;letter-spacing:3px'>FIFA WORLD CUP 2026</h1>
+        <p style='color:#5a6a8a;margin:0;font-size:0.85rem'>🔄 Updated """ + datetime.now().strftime('%Y-%m-%d %H:%M:%S') + """</p>
+    </div>
+    <span class='spin-ball'>⚽</span>
+</div>
+""", unsafe_allow_html=True)
 
 st.markdown("---")
 
@@ -445,7 +512,7 @@ m4.metric("🏟️ Groups", groups)
 st.markdown("---")
 
 # ── TABS ──────────────────────────────────────────────────────────────────────
-tab1, tab2, tab3, tab4, tab5 = st.tabs(["📅 FIXTURES", "📊 STANDINGS", "🏆 BRACKET", "⭐ TOP PLAYERS", "📡 LIVE API"])
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["📅 FIXTURES", "📊 STANDINGS", "🏆 BRACKET", "⭐ TOP PLAYERS", "📡 LIVE API", "👟 SQUADS"])
 
 # ════════════════════════════════════════════════════════════════════════════════
 with tab1:
@@ -718,3 +785,61 @@ with tab5:
                     "GD": entry["goalDifference"], "Pts": entry["points"]
                 })
             st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+
+# ════════════════════════════════════════════════════════════════════════════════
+with tab6:
+    st.markdown("<div class='section-title'>KEY PLAYERS BY TEAM</div>", unsafe_allow_html=True)
+
+    # Search
+    search = st.text_input("🔍 Search player or team", placeholder="e.g. Messi, Brazil, Forward...")
+
+    # Group filter
+    all_groups = sorted(st.session_state.matches["Group"].unique())
+    group_filter = st.selectbox("Filter by Group", ["All Groups"] + [f"Group {g}" for g in all_groups])
+
+    # Build team list filtered by group
+    if group_filter != "All Groups":
+        g_letter = group_filter.replace("Group ", "")
+        group_teams = pd.unique(st.session_state.matches[st.session_state.matches["Group"] == g_letter][["Team A", "Team B"]].values.ravel("K"))
+        group_teams = [t for t in group_teams if t and str(t).strip()]
+    else:
+        group_teams = list(KEY_PLAYERS.keys())
+
+    for team in sorted(group_teams):
+        players = KEY_PLAYERS.get(team, [])
+        if not players:
+            continue
+
+        # Apply search filter
+        if search:
+            s = search.lower()
+            players = [p for p in players if s in p[0].lower() or s in team.lower() or s in p[1].lower()]
+            if not players:
+                continue
+
+        grp = st.session_state.matches[
+            (st.session_state.matches["Team A"] == team) | (st.session_state.matches["Team B"] == team)
+        ]["Group"]
+        grp_letter = grp.iloc[0] if len(grp) else "?"
+        grp_color = GROUP_COLORS.get(str(grp_letter), "#748CF7")
+
+        st.markdown(f"""
+        <div style='display:flex;align-items:center;gap:10px;margin:1.2rem 0 0.5rem 0'>
+            <span style='font-size:1.8rem'>{flag(team)}</span>
+            <h3 style='margin:0;font-family:Bebas Neue,sans-serif;letter-spacing:2px;color:#e8eaf0'>{team}</h3>
+            <span class='group-badge' style='background:{grp_color}22;color:{grp_color};border:1px solid {grp_color}44'>GRP {grp_letter}</span>
+        </div>""", unsafe_allow_html=True)
+
+        cols = st.columns(len(players))
+        for i, (name, pos, club) in enumerate(players):
+            pos_color = {"Forward": "#FF6B6B", "Midfielder": "#F7C948", "Defender": "#48D8A0", "Goalkeeper": "#748CF7"}.get(pos, "#8a9ab5")
+            with cols[i]:
+                st.markdown(f"""
+                <div class='player-card'>
+                    <div style='font-size:1.6rem'>{flag(team)}</div>
+                    <div style='font-weight:700;font-size:0.88rem;margin:6px 0 2px'>{name}</div>
+                    <div style='display:inline-block;background:{pos_color}22;color:{pos_color};border:1px solid {pos_color}44;border-radius:10px;padding:1px 8px;font-size:0.72rem;margin-bottom:4px'>{pos}</div>
+                    <div style='color:#5a6a8a;font-size:0.72rem'>{club}</div>
+                </div>""", unsafe_allow_html=True)
+
+        st.markdown("<hr style='border-color:#1a2235;margin:0.5rem 0'>", unsafe_allow_html=True)
