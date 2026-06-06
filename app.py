@@ -337,6 +337,20 @@ def build_round_of_32(qualifiers):
             pairs.append({"Match": f"R32-{i//2+1}", "Team A": q.loc[i, "Team"], "Team B": q.loc[i+1, "Team"], "Status": "Upcoming", "Winner": ""})
     return pd.DataFrame(pairs)
 
+def advance_round(prev_round_df):
+    """Takes winners from a round and pairs them into the next round."""
+    winners = list(prev_round_df["Winner"].values)
+    pairs = []
+    label_map = {"R32": "R16", "R16": "QF", "QF": "SF", "SF": "F"}
+    prefix = prev_round_df["Match"].iloc[0].split("-")[0] if len(prev_round_df) else "R32"
+    next_prefix = label_map.get(prefix, "Next")
+    for i in range(0, len(winners), 2):
+        if i + 1 < len(winners):
+            ta = winners[i] if winners[i] else f"Winner M{i+1}"
+            tb = winners[i+1] if winners[i+1] else f"Winner M{i+2}"
+            pairs.append({"Match": f"{next_prefix}-{i//2+1}", "Team A": ta, "Team B": tb, "Status": "Upcoming", "Winner": ""})
+    return pd.DataFrame(pairs)
+
 @st.cache_data(ttl=300)
 def fetch_live_matches():
     try:
@@ -529,21 +543,87 @@ with tab3:
 
     if len(qualifiers) < 4:
         st.info("🏆 Complete group stage matches to populate the bracket.")
-        st.markdown("**Bracket structure:** 12 groups × top 2 + 8 best 3rd place = **32 teams** advance to Round of 32")
+        st.markdown("""
+        **Full knockout structure:**
+        - 🥊 Round of 32 — 32 teams
+        - ⚔️ Round of 16 — 16 teams
+        - 🏅 Quarterfinals — 8 teams
+        - 🔥 Semifinals — 4 teams
+        - 🏆 Final — 2 teams
+        """)
     else:
-        r32 = build_round_of_32(qualifiers)
-        st.markdown("### Round of 32")
-        cols = st.columns(4)
-        for i, (_, row) in enumerate(r32.iterrows()):
-            with cols[i % 4]:
-                winner_class = "bracket-winner" if row["Winner"] else ""
-                st.markdown(f"""
-                <div class='bracket-match {winner_class}'>
-                    <div>{flag(row["Team A"])} {row["Team A"]}</div>
-                    <div style='color:#5a6a8a;font-size:0.75rem;text-align:center'>vs</div>
-                    <div>{flag(row["Team B"])} {row["Team B"]}</div>
-                    {"<div style='color:#F7C948;font-size:0.8rem;margin-top:4px'>🏆 " + row["Winner"] + "</div>" if row["Winner"] else ""}
-                </div>""", unsafe_allow_html=True)
+        # ── ROUND OF 32 ───────────────────────────────────────────────────
+        if "r32" not in st.session_state:
+            st.session_state.r32 = build_round_of_32(qualifiers)
+
+        def render_round(df, title, key):
+            st.markdown(f"<h3 style='color:#F7C948;font-family:Bebas Neue,sans-serif;letter-spacing:2px;margin-top:1.5rem'>{title}</h3>", unsafe_allow_html=True)
+            cols_count = min(4, len(df))
+            cols = st.columns(cols_count)
+            updated = df.copy()
+            for i, (idx, row) in enumerate(df.iterrows()):
+                with cols[i % cols_count]:
+                    winner_class = "bracket-winner" if row["Winner"] else ""
+                    st.markdown(f"""
+                    <div class='bracket-match {winner_class}'>
+                        <div>{flag(row["Team A"])} {row["Team A"]}</div>
+                        <div style='color:#5a6a8a;font-size:0.75rem;text-align:center'>vs</div>
+                        <div>{flag(row["Team B"])} {row["Team B"]}</div>
+                        {"<div style='color:#F7C948;font-size:0.8rem;margin-top:4px'>🏆 " + row["Winner"] + "</div>" if row["Winner"] else ""}
+                    </div>""", unsafe_allow_html=True)
+                    options = ["—", row["Team A"], row["Team B"]]
+                    current = row["Winner"] if row["Winner"] else "—"
+                    if current not in options:
+                        current = "—"
+                    choice = st.selectbox("Winner", options, index=options.index(current), key=f"{key}_{i}", label_visibility="collapsed")
+                    updated.at[idx, "Winner"] = "" if choice == "—" else choice
+            return updated
+
+        st.session_state.r32 = render_round(st.session_state.r32, "🥊 ROUND OF 32", "r32")
+
+        # ── ROUND OF 16 ───────────────────────────────────────────────────
+        r32_complete = st.session_state.r32["Winner"].ne("").all()
+        if r32_complete:
+            if "r16" not in st.session_state or len(st.session_state.r16) == 0:
+                st.session_state.r16 = advance_round(st.session_state.r32)
+            st.session_state.r16 = render_round(st.session_state.r16, "⚔️ ROUND OF 16", "r16")
+
+            # ── QUARTERFINALS ─────────────────────────────────────────────
+            r16_complete = st.session_state.r16["Winner"].ne("").all()
+            if r16_complete:
+                if "qf" not in st.session_state or len(st.session_state.qf) == 0:
+                    st.session_state.qf = advance_round(st.session_state.r16)
+                st.session_state.qf = render_round(st.session_state.qf, "🏅 QUARTERFINALS", "qf")
+
+                # ── SEMIFINALS ────────────────────────────────────────────
+                qf_complete = st.session_state.qf["Winner"].ne("").all()
+                if qf_complete:
+                    if "sf" not in st.session_state or len(st.session_state.sf) == 0:
+                        st.session_state.sf = advance_round(st.session_state.qf)
+                    st.session_state.sf = render_round(st.session_state.sf, "🔥 SEMIFINALS", "sf")
+
+                    # ── FINAL ─────────────────────────────────────────────
+                    sf_complete = st.session_state.sf["Winner"].ne("").all()
+                    if sf_complete:
+                        if "final" not in st.session_state or len(st.session_state.final) == 0:
+                            st.session_state.final = advance_round(st.session_state.sf)
+                        st.session_state.final = render_round(st.session_state.final, "🏆 FINAL", "final")
+
+                        final_winner = st.session_state.final["Winner"].iloc[0] if len(st.session_state.final) and st.session_state.final["Winner"].iloc[0] else None
+                        if final_winner:
+                            st.balloons()
+                            st.markdown(f"""
+                            <div style='text-align:center;padding:2rem;background:linear-gradient(135deg,#1a2a00,#2a3a00);border:2px solid #F7C948;border-radius:16px;margin-top:1rem'>
+                                <div style='font-size:4rem'>{flag(final_winner)}</div>
+                                <div style='font-family:Bebas Neue,sans-serif;font-size:3rem;color:#F7C948;letter-spacing:3px'>{final_winner}</div>
+                                <div style='color:#8a9ab5;font-size:1rem;margin-top:0.5rem'>🏆 FIFA WORLD CUP 2026 CHAMPION</div>
+                            </div>""", unsafe_allow_html=True)
+
+        if st.button("🔄 Reset Bracket", type="secondary"):
+            for key in ["r32", "r16", "qf", "sf", "final"]:
+                if key in st.session_state:
+                    del st.session_state[key]
+            st.rerun()
 
 # ════════════════════════════════════════════════════════════════════════════════
 with tab4:
