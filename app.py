@@ -451,6 +451,71 @@ def fetch_standings_api():
         pass
     return []
 
+
+@st.cache_data(ttl=120)
+def fetch_all_wc_matches():
+    """Fetch all WC matches from API — used to auto-sync scores."""
+    try:
+        r = requests.get(f"{API_BASE}/competitions/WC/matches", headers=HEADERS, timeout=8)
+        if r.status_code == 200:
+            return r.json().get("matches", [])
+    except Exception:
+        pass
+    return []
+
+def auto_sync_scores(matches_df):
+    """Pull finished scores from API and update matches_df in place."""
+    api_matches = fetch_all_wc_matches()
+    if not api_matches:
+        return matches_df, 0
+
+    updated = matches_df.copy()
+    count = 0
+
+    for m in api_matches:
+        status = m.get("status", "")
+        if status not in ("FINISHED", "IN_PLAY", "PAUSED"):
+            continue
+
+        home = m["homeTeam"]["name"]
+        away = m["awayTeam"]["name"]
+        score = m.get("score", {})
+        full = score.get("fullTime", {})
+        home_score = full.get("home")
+        away_score = full.get("away")
+
+        if home_score is None or away_score is None:
+            continue
+
+        # Match by team names (try both orderings)
+        mask = (
+            ((updated["Team A"] == home) & (updated["Team B"] == away)) |
+            ((updated["Team A"] == away) & (updated["Team B"] == home))
+        )
+        if not mask.any():
+            continue
+
+        idx = updated[mask].index[0]
+        row = updated.loc[idx]
+
+        # Flip scores if teams are reversed
+        if row["Team A"] == away:
+            home_score, away_score = away_score, home_score
+
+        # Only update if score changed
+        if str(row["Team A Score"]) != str(home_score) or str(row["Team B Score"]) != str(away_score):
+            updated.at[idx, "Team A Score"] = home_score
+            updated.at[idx, "Team B Score"] = away_score
+            if status == "FINISHED":
+                updated.at[idx, "Status"] = "Finished"
+            count += 1
+
+    if count > 0:
+        updated = updated.apply(compute_match_outcome, axis=1)
+        save_matches(updated)
+
+    return updated, count
+
 # ── SESSION STATE ─────────────────────────────────────────────────────────────
 
 # ── PREDICTIONS ───────────────────────────────────────────────────────────────
@@ -512,6 +577,12 @@ if st_autorefresh:
 
 st.session_state.matches = ensure_columns(st.session_state.matches)
 st.session_state.matches = st.session_state.matches.apply(compute_match_outcome, axis=1)
+
+# Auto-sync scores from API
+st.session_state.matches, synced_count = auto_sync_scores(st.session_state.matches)
+if synced_count > 0:
+    st.toast(f"⚡ Auto-synced {synced_count} match score(s) from live API", icon="⚽")
+
 standings = build_standings(st.session_state.matches)
 
 # ── HEADER ────────────────────────────────────────────────────────────────────
