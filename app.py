@@ -1136,3 +1136,32 @@ with tab7:
                 columns={"Predicted Winner": "Your Pick", "Correct": "Result"}
             )
             st.dataframe(display_preds, use_container_width=True, hide_index=True)
+
+        # ── ALL PLAYERS PREDICTIONS GRID ──────────────────────────────────────
+        st.markdown("### 👥 Everyone's Picks")
+        all_preds = st.session_state.predictions.copy()
+        if len(all_preds) == 0:
+            st.info("No predictions made yet.")
+        else:
+            all_players = sorted(all_preds["Player"].unique())
+            # Build match labels
+            match_labels = st.session_state.matches[["Match ID", "Team A", "Team B", "Date", "Group"]].copy()
+            match_labels["Match"] = match_labels.apply(
+                lambda r: f"{flag(r['Team A'])} {r['Team A']} vs {r['Team B']} {flag(r['Team B'])}", axis=1
+            )
+            # Pivot: rows=matches, cols=players
+            grid = match_labels[["Match ID", "Date", "Group", "Match"]].copy()
+            for p in all_players:
+                p_preds = all_preds[all_preds["Player"] == p][["Match ID", "Predicted Winner", "Correct"]].copy()
+                p_preds.columns = ["Match ID", p, f"{p}_result"]
+                grid = grid.merge(p_preds, on="Match ID", how="left")
+                # Combine pick + result into one cell
+                def fmt(row, p=p):
+                    pick = row[p] if pd.notna(row[p]) else "—"
+                    result = row[f"{p}_result"] if pd.notna(row.get(f"{p}_result")) else ""
+                    return f"{pick} {result}".strip()
+                grid[p] = grid.apply(fmt, axis=1)
+                grid = grid.drop(columns=[f"{p}_result"])
+
+            display_grid = grid[["Date", "Group", "Match"] + all_players].sort_values(["Date", "Match ID"])
+            st.dataframe(display_grid, use_container_width=True, hide_index=True)
