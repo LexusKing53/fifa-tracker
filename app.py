@@ -1163,5 +1163,5 @@ with tab7:
                 grid[p] = grid.apply(fmt, axis=1)
                 grid = grid.drop(columns=[f"{p}_result"])
 
-            display_grid = grid[["Date", "Group", "Match"] + all_players].sort_values(["Date", "Match ID"])
+            display_grid = grid[["Date", "Group", "Match"] + all_players].sort_values("Date")
             st.dataframe(display_grid, use_container_width=True, hide_index=True)
