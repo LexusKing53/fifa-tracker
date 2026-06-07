@@ -452,6 +452,12 @@ def fetch_standings_api():
     return []
 
 # ── SESSION STATE ─────────────────────────────────────────────────────────────
+if "predictions" not in st.session_state:
+    st.session_state.predictions = load_predictions()
+
+if "player_name" not in st.session_state:
+    st.session_state.player_name = ""
+
 if "matches" not in st.session_state:
     st.session_state.matches = ensure_columns(load_matches())
 
@@ -512,7 +518,7 @@ m4.metric("🏟️ Groups", groups)
 st.markdown("---")
 
 # ── TABS ──────────────────────────────────────────────────────────────────────
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["📅 FIXTURES", "📊 STANDINGS", "🏆 BRACKET", "⭐ TOP PLAYERS", "📡 LIVE API", "👟 SQUADS"])
+tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["📅 FIXTURES", "📊 STANDINGS", "🏆 BRACKET", "⭐ TOP PLAYERS", "📡 LIVE API", "👟 SQUADS", "🎯 PREDICTIONS"])
 
 # ════════════════════════════════════════════════════════════════════════════════
 with tab1:
@@ -843,3 +849,122 @@ with tab6:
                 </div>""", unsafe_allow_html=True)
 
         st.markdown("<hr style='border-color:#1a2235;margin:0.5rem 0'>", unsafe_allow_html=True)
+
+# ════════════════════════════════════════════════════════════════════════════════
+with tab7:
+    st.markdown("<div class='section-title'>PREDICTION GAME</div>", unsafe_allow_html=True)
+
+    # ── PLAYER NAME ───────────────────────────────────────────────────────────
+    st.markdown("### 👤 Who are you?")
+    name_input = st.text_input("Enter your name to play", value=st.session_state.player_name,
+                                placeholder="e.g. Ralph, Miru, Duke...", key="name_input")
+    if name_input:
+        st.session_state.player_name = name_input.strip()
+
+    if not st.session_state.player_name:
+        st.info("Enter your name above to start making predictions.")
+    else:
+        player = st.session_state.player_name
+        st.markdown(f"<p style='color:#48D8A0;font-weight:700'>Playing as: {player} 🎮</p>", unsafe_allow_html=True)
+
+        # Score existing predictions
+        st.session_state.predictions = score_predictions(st.session_state.predictions, st.session_state.matches)
+
+        # ── UPCOMING MATCHES TO PREDICT ───────────────────────────────────────
+        st.markdown("### ⚽ Pick Your Winners")
+        upcoming = st.session_state.matches[st.session_state.matches["Status"] != "Finished"].copy()
+
+        if len(upcoming) == 0:
+            st.success("All matches have finished!")
+        else:
+            made_any = False
+            for _, match in upcoming.iterrows():
+                match_id = match["Match ID"]
+                locked = is_match_locked(match)
+
+                # Check if this player already predicted this match
+                existing = st.session_state.predictions[
+                    (st.session_state.predictions["Player"] == player) &
+                    (st.session_state.predictions["Match ID"] == match_id)
+                ]
+                already_picked = existing.iloc[0]["Predicted Winner"] if len(existing) > 0 else None
+
+                grp_color = GROUP_COLORS.get(str(match["Group"]), "#748CF7")
+                lock_badge = "<span style='color:#FF6B6B;font-size:0.75rem'>🔒 Locked</span>" if locked else "<span style='color:#48D8A0;font-size:0.75rem'>🟢 Open</span>"
+
+                st.markdown(f"""
+                <div class='match-card' style='margin-bottom:0.3rem'>
+                    <span class='group-badge' style='background:{grp_color}22;color:{grp_color};border:1px solid {grp_color}44'>GRP {match["Group"]}</span>
+                    <span style='color:#5a6a8a;font-size:0.8rem'>{match["Date"]}</span>
+                    <span style='font-weight:700'>{flag(match["Team A"])} {match["Team A"]} vs {match["Team B"]} {flag(match["Team B"])}</span>
+                    {lock_badge}
+                    {"<span style='color:#F7C948;font-size:0.8rem'>Your pick: " + already_picked + "</span>" if already_picked else ""}
+                </div>""", unsafe_allow_html=True)
+
+                if not locked:
+                    options = ["— Pick a winner —", match["Team A"], match["Team B"], "Draw"]
+                    current_idx = 0
+                    if already_picked and already_picked in options:
+                        current_idx = options.index(already_picked)
+
+                    pick = st.selectbox("", options, index=current_idx,
+                                       key=f"pred_{player}_{match_id}",
+                                       label_visibility="collapsed")
+
+                    if pick != "— Pick a winner —" and pick != already_picked:
+                        # Save prediction
+                        new_row = pd.DataFrame([{
+                            "Player": player,
+                            "Match ID": match_id,
+                            "Predicted Winner": pick,
+                            "Correct": ""
+                        }])
+                        # Remove old prediction for this match if exists
+                        st.session_state.predictions = st.session_state.predictions[
+                            ~((st.session_state.predictions["Player"] == player) &
+                              (st.session_state.predictions["Match ID"] == match_id))
+                        ]
+                        st.session_state.predictions = pd.concat(
+                            [st.session_state.predictions, new_row], ignore_index=True
+                        )
+                        save_predictions(st.session_state.predictions)
+                        made_any = True
+
+        # ── LEADERBOARD ───────────────────────────────────────────────────────
+        st.markdown("### 🏆 Leaderboard")
+        lb = get_leaderboard(st.session_state.predictions)
+        if len(lb) == 0:
+            st.info("Leaderboard populates once matches finish.")
+        else:
+            medals = ["🥇", "🥈", "🥉"]
+            for i, row in lb.iterrows():
+                medal = medals[i] if i < 3 else f"{i+1}."
+                bar_width = int((row["Points"] / (lb["Points"].max() + 1)) * 100)
+                st.markdown(f"""
+                <div class='match-card' style='margin:4px 0'>
+                    <span style='font-size:1.3rem'>{medal}</span>
+                    <span style='font-weight:700;min-width:120px'>{row["Player"]}</span>
+                    <div style='flex:1;background:#0a0e1a;border-radius:6px;height:12px;margin:0 12px'>
+                        <div style='width:{bar_width}%;background:linear-gradient(90deg,#F7C948,#FF9F43);height:100%;border-radius:6px'></div>
+                    </div>
+                    <span style='color:#F7C948;font-family:Bebas Neue,sans-serif;font-size:1.2rem'>{row["Points"]} pts</span>
+                    <span style='color:#48D8A0;font-size:0.8rem'>{row["Correct"]}/{row["Predicted"]} correct ({row["Accuracy"]})</span>
+                </div>""", unsafe_allow_html=True)
+
+        # ── MY PREDICTIONS ────────────────────────────────────────────────────
+        st.markdown("### 📋 My Predictions")
+        my_preds = st.session_state.predictions[st.session_state.predictions["Player"] == player].copy()
+        if len(my_preds) == 0:
+            st.info("You haven't made any predictions yet.")
+        else:
+            my_preds = my_preds.merge(
+                st.session_state.matches[["Match ID", "Team A", "Team B", "Date", "Group"]],
+                on="Match ID", how="left"
+            )
+            my_preds["Match"] = my_preds.apply(
+                lambda r: f"{flag(r['Team A'])} {r['Team A']} vs {r['Team B']} {flag(r['Team B'])}", axis=1
+            )
+            display_preds = my_preds[["Date", "Group", "Match", "Predicted Winner", "Correct"]].rename(
+                columns={"Predicted Winner": "Your Pick", "Correct": "Result"}
+            )
+            st.dataframe(display_preds, use_container_width=True, hide_index=True)
