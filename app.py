@@ -12,7 +12,7 @@ except Exception:
 st.set_page_config(page_title="FIFA 2026 Tracker", page_icon="⚽", layout="wide")
 
 # ── API ──────────────────────────────────────────────────────────────────────
-API_KEY = "f477119f97c044af967a2834846259a6"
+API_KEY = st.secrets.get("FOOTBALL_API_KEY", "f477119f97c044af967a2834846259a6")
 API_BASE = "https://api.football-data.org/v4"
 HEADERS = {"X-Auth-Token": API_KEY}
 WC2026_ID = 2000  # FIFA World Cup competition ID
@@ -112,6 +112,19 @@ GROUP_COLORS = {
 }
 
 # ── CUSTOM CSS ───────────────────────────────────────────────────────────────
+st.markdown("""
+<style>
+/* Hide Streamlit toolbar, hamburger menu, footer, GitHub link */
+#MainMenu {visibility: hidden !important;}
+header[data-testid="stHeader"] {visibility: hidden !important;}
+footer {visibility: hidden !important;}
+[data-testid="stToolbar"] {visibility: hidden !important;}
+[data-testid="stDecoration"] {display: none !important;}
+.stDeployButton {display: none !important;}
+a[href*="github"] {display: none !important;}
+</style>
+""", unsafe_allow_html=True)
+
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400;600;700&display=swap');
