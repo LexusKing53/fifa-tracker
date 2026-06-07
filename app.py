@@ -558,19 +558,19 @@ def is_match_locked(match_row):
         return False
 
 def score_predictions(predictions, matches):
-    updated = predictions.copy().reset_index(drop=True)
-    for idx in range(len(updated)):
-        row = updated.iloc[idx]
-        match = matches[matches["Match ID"] == row["Match ID"]]
+    if len(predictions) == 0:
+        return predictions
+    records = predictions.to_dict("records")
+    for rec in records:
+        match = matches[matches["Match ID"] == rec["Match ID"]]
         if len(match) == 0:
             continue
         match = match.iloc[0]
         if match["Status"] != "Finished":
-            updated.iloc[idx, updated.columns.get_loc("Correct")] = ""
-            continue
-        correct = "✅" if str(row["Predicted Winner"]) == str(match["Winner"]) else "❌"
-        updated.iloc[idx, updated.columns.get_loc("Correct")] = correct
-    return updated
+            rec["Correct"] = ""
+        else:
+            rec["Correct"] = "✅" if str(rec["Predicted Winner"]) == str(match["Winner"]) else "❌"
+    return pd.DataFrame(records)
 
 def get_leaderboard(predictions):
     if len(predictions) == 0:
