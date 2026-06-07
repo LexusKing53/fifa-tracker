@@ -452,6 +452,52 @@ def fetch_standings_api():
     return []
 
 # ── SESSION STATE ─────────────────────────────────────────────────────────────
+
+# ── PREDICTIONS ───────────────────────────────────────────────────────────────
+PREDICTIONS_FILE = Path("predictions.csv")
+
+def load_predictions():
+    if PREDICTIONS_FILE.exists():
+        return pd.read_csv(PREDICTIONS_FILE)
+    return pd.DataFrame(columns=["Player", "Match ID", "Predicted Winner", "Correct"])
+
+def save_predictions(df):
+    df.to_csv(PREDICTIONS_FILE, index=False)
+
+def is_match_locked(match_row):
+    try:
+        match_date = pd.to_datetime(match_row["Date"])
+        return match_date.date() <= datetime.now().date()
+    except Exception:
+        return False
+
+def score_predictions(predictions, matches):
+    updated = predictions.copy()
+    for idx, row in updated.iterrows():
+        match = matches[matches["Match ID"] == row["Match ID"]]
+        if len(match) == 0:
+            continue
+        match = match.iloc[0]
+        if match["Status"] != "Finished":
+            updated.at[idx, "Correct"] = ""
+            continue
+        updated.at[idx, "Correct"] = "✅" if row["Predicted Winner"] == match["Winner"] else "❌"
+    return updated
+
+def get_leaderboard(predictions):
+    if len(predictions) == 0:
+        return pd.DataFrame()
+    scored = predictions[predictions["Correct"].isin(["✅", "❌"])]
+    if len(scored) == 0:
+        return pd.DataFrame()
+    lb = scored.groupby("Player").agg(
+        Predicted=("Match ID", "count"),
+        Correct=("Correct", lambda x: (x == "✅").sum()),
+    ).reset_index()
+    lb["Points"] = lb["Correct"] * 3
+    lb["Accuracy"] = (lb["Correct"] / lb["Predicted"] * 100).round(1).astype(str) + "%"
+    return lb.sort_values("Points", ascending=False).reset_index(drop=True)
+
 if "predictions" not in st.session_state:
     st.session_state.predictions = load_predictions()
 
