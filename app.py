@@ -612,15 +612,114 @@ standings = build_standings(st.session_state.matches)
 st.markdown("""
 <style>
 @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+@keyframes trophyGlow { 0%,100%{filter:drop-shadow(0 0 6px #f7c94888)} 50%{filter:drop-shadow(0 0 18px #f7c948cc)} }
 .spin-ball { display:inline-block; animation:spin 2s linear infinite; font-size:3.5rem; line-height:1; }
+.trophy-img { animation:trophyGlow 3s ease-in-out infinite; }
 </style>
-<div style='display:flex;align-items:center;gap:1rem;padding:0.5rem 0'>
-    <span class='spin-ball'>⚽</span>
-    <div>
-        <h1 style='font-size:3.5rem;margin:0;color:#F7C948;font-family:Bebas Neue,sans-serif;letter-spacing:3px'>FIFA WORLD CUP 2026</h1>
-        <p style='color:#5a6a8a;margin:0;font-size:0.85rem'>🔄 Updated """ + datetime.now().strftime('%Y-%m-%d %H:%M:%S') + """</p>
+<div style='display:flex;align-items:center;justify-content:space-between;padding:0.5rem 0'>
+    <div style='display:flex;align-items:center;gap:1rem'>
+        <span class='spin-ball'>⚽</span>
+        <div>
+            <h1 style='font-size:3.5rem;margin:0;color:#F7C948;font-family:Bebas Neue,sans-serif;letter-spacing:3px'>FIFA WORLD CUP 2026</h1>
+            <p style='color:#5a6a8a;margin:0;font-size:0.85rem'>🔄 Updated """ + datetime.now().strftime('%Y-%m-%d %H:%M:%S') + """</p>
+        </div>
+        <span class='spin-ball'>⚽</span>
     </div>
-    <span class='spin-ball'>⚽</span>
+    <div class='trophy-img'><svg width="120" height="160" viewBox="0 0 680 580" role="img" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <linearGradient id="tg1" x1="0%" y1="0%" x2="100%" y2="0%">
+    <stop offset="0%" style="stop-color:#5a3c08"/>
+    <stop offset="20%" style="stop-color:#c8960c"/>
+    <stop offset="45%" style="stop-color:#ffe87c"/>
+    <stop offset="55%" style="stop-color:#ffe87c"/>
+    <stop offset="80%" style="stop-color:#c8960c"/>
+    <stop offset="100%" style="stop-color:#5a3c08"/>
+  </linearGradient>
+  <linearGradient id="tg2" x1="0%" y1="0%" x2="100%" y2="0%">
+    <stop offset="0%" style="stop-color:#3a2a05"/>
+    <stop offset="35%" style="stop-color:#d4a017"/>
+    <stop offset="50%" style="stop-color:#f7c948"/>
+    <stop offset="65%" style="stop-color:#d4a017"/>
+    <stop offset="100%" style="stop-color:#3a2a05"/>
+  </linearGradient>
+  <linearGradient id="tgGreen" x1="0%" y1="0%" x2="100%" y2="0%">
+    <stop offset="0%" style="stop-color:#0d200d"/>
+    <stop offset="30%" style="stop-color:#1e5c1e"/>
+    <stop offset="50%" style="stop-color:#2e8b2e"/>
+    <stop offset="70%" style="stop-color:#1e5c1e"/>
+    <stop offset="100%" style="stop-color:#0d200d"/>
+  </linearGradient>
+  <radialGradient id="tgGlobe" cx="40%" cy="35%" r="65%">
+    <stop offset="0%" style="stop-color:#fff5b0"/>
+    <stop offset="40%" style="stop-color:#f7c948"/>
+    <stop offset="100%" style="stop-color:#7a5510"/>
+  </radialGradient>
+  <radialGradient id="tgShine" cx="30%" cy="25%" r="60%">
+    <stop offset="0%" style="stop-color:#ffffff" stop-opacity="0.6"/>
+    <stop offset="100%" style="stop-color:#ffffff" stop-opacity="0"/>
+  </radialGradient>
+</defs>
+<ellipse cx="340" cy="530" rx="110" ry="12" fill="#000" opacity="0.25"/>
+<rect x="228" y="500" width="224" height="20" rx="5" fill="url(#tgGreen)"/>
+<rect x="232" y="502" width="216" height="6" rx="2" fill="#3aaa3a" opacity="0.3"/>
+<line x1="232" y1="508" x2="448" y2="508" stroke="#1e5c1e" stroke-width="1" opacity="0.5"/>
+<line x1="232" y1="512" x2="448" y2="512" stroke="#3aaa3a" stroke-width="0.5" opacity="0.3"/>
+<line x1="232" y1="516" x2="448" y2="516" stroke="#1e5c1e" stroke-width="1" opacity="0.4"/>
+<rect x="236" y="478" width="208" height="24" rx="4" fill="url(#tg2)"/>
+<rect x="240" y="480" width="200" height="8" rx="2" fill="#ffe87c" opacity="0.15"/>
+<line x1="244" y1="485" x2="436" y2="485" stroke="#5a3c08" stroke-width="0.5" opacity="0.6"/>
+<line x1="244" y1="490" x2="436" y2="490" stroke="#5a3c08" stroke-width="0.5" opacity="0.4"/>
+<line x1="244" y1="495" x2="436" y2="495" stroke="#5a3c08" stroke-width="0.5" opacity="0.6"/>
+<rect x="252" y="460" width="176" height="20" rx="3" fill="url(#tg1)"/>
+<rect x="256" y="462" width="168" height="6" rx="2" fill="#fff5b0" opacity="0.2"/>
+<rect x="268" y="446" width="144" height="16" rx="3" fill="url(#tg2)"/>
+<text x="340" y="458" text-anchor="middle" font-family="serif" font-size="9" fill="#5a3c08" font-weight="bold" opacity="0.8">FIFA WORLD CUP 2026</text>
+<polygon points="296,446 312,362 368,362 384,446" fill="url(#tg1)"/>
+<polygon points="332,446 336,362 344,362 348,446" fill="#fff5b0" opacity="0.25"/>
+<polygon points="296,446 312,362 316,362 300,446" fill="#5a3c08" opacity="0.3"/>
+<polygon points="380,446 368,362 372,362 384,446" fill="#5a3c08" opacity="0.3"/>
+<ellipse cx="340" cy="364" rx="52" ry="14" fill="url(#tg2)"/>
+<ellipse cx="340" cy="360" rx="52" ry="14" fill="url(#tg1)"/>
+<ellipse cx="340" cy="356" rx="48" ry="11" fill="#ffe87c" opacity="0.2"/>
+<polygon points="312,356 322,272 358,272 368,356" fill="url(#tg1)"/>
+<polygon points="334,356 338,272 342,272 346,356" fill="#fff5b0" opacity="0.25"/>
+<polygon points="312,356 322,272 326,272 316,356" fill="#5a3c08" opacity="0.25"/>
+<polygon points="364,356 358,272 362,272 368,356" fill="#5a3c08" opacity="0.25"/>
+<path d="M322,318 Q268,305 262,265 Q258,230 298,222 Q310,220 322,228" fill="none" stroke="#7a5510" stroke-width="16" stroke-linecap="round"/>
+<path d="M322,318 Q268,305 262,265 Q258,230 298,222 Q310,220 322,228" fill="none" stroke="url(#tg1)" stroke-width="12" stroke-linecap="round"/>
+<path d="M322,318 Q268,305 262,265 Q258,230 298,222 Q310,220 322,228" fill="none" stroke="#ffe87c" stroke-width="4" stroke-linecap="round" opacity="0.45"/>
+<path d="M358,318 Q412,305 418,265 Q422,230 382,222 Q370,220 358,228" fill="none" stroke="#7a5510" stroke-width="16" stroke-linecap="round"/>
+<path d="M358,318 Q412,305 418,265 Q422,230 382,222 Q370,220 358,228" fill="none" stroke="url(#tg1)" stroke-width="12" stroke-linecap="round"/>
+<path d="M358,318 Q412,305 418,265 Q422,230 382,222 Q370,220 358,228" fill="none" stroke="#ffe87c" stroke-width="4" stroke-linecap="round" opacity="0.45"/>
+<path d="M298,228 Q280,205 283,178 Q287,145 340,130 Q393,145 397,178 Q400,205 382,228 Z" fill="#5a3c08" opacity="0.4" transform="translate(3,3)"/>
+<path d="M298,228 Q280,205 283,178 Q287,145 340,130 Q393,145 397,178 Q400,205 382,228 Z" fill="url(#tg1)"/>
+<path d="M298,228 Q280,205 283,178 Q287,145 310,135 L315,145 Q296,158 294,178 Q292,202 308,222 Z" fill="#5a3c08" opacity="0.3"/>
+<path d="M382,228 Q400,205 397,178 Q393,145 370,135 L365,145 Q384,158 386,178 Q388,202 372,222 Z" fill="#5a3c08" opacity="0.3"/>
+<path d="M322,222 Q310,200 314,178 Q318,155 340,146 Q362,155 366,178 Q370,200 358,222 Z" fill="#fff5b0" opacity="0.2"/>
+<circle cx="340" cy="112" r="58" fill="#f7c948" opacity="0.12"/>
+<circle cx="343" cy="115" r="52" fill="#5a3c08" opacity="0.3"/>
+<circle cx="340" cy="112" r="52" fill="url(#tgGlobe)"/>
+<circle cx="340" cy="112" r="52" fill="url(#tgShine)"/>
+<ellipse cx="340" cy="112" rx="52" ry="15" fill="none" stroke="#7a5510" stroke-width="0.8" opacity="0.45"/>
+<ellipse cx="340" cy="90" rx="45" ry="10" fill="none" stroke="#7a5510" stroke-width="0.6" opacity="0.35"/>
+<ellipse cx="340" cy="134" rx="45" ry="10" fill="none" stroke="#7a5510" stroke-width="0.6" opacity="0.35"/>
+<path d="M340,60 Q360,88 360,112 Q360,136 340,164" fill="none" stroke="#7a5510" stroke-width="0.6" opacity="0.35"/>
+<path d="M340,60 Q320,88 320,112 Q320,136 340,164" fill="none" stroke="#7a5510" stroke-width="0.6" opacity="0.35"/>
+<path d="M300,90 Q308,82 318,85 Q322,92 318,100 Q310,105 302,98 Z" fill="#8B6914" opacity="0.55"/>
+<path d="M312,108 Q318,105 322,112 Q320,122 314,126 Q308,122 309,114 Z" fill="#8B6914" opacity="0.5"/>
+<path d="M335,82 Q342,78 348,83 Q350,90 346,95 Q340,97 335,92 Z" fill="#8B6914" opacity="0.5"/>
+<path d="M336,100 Q344,97 350,104 Q352,116 346,122 Q338,124 334,116 Q332,108 336,100 Z" fill="#8B6914" opacity="0.5"/>
+<path d="M352,82 Q366,78 374,85 Q378,95 372,102 Q362,106 354,100 Q348,92 352,82 Z" fill="#8B6914" opacity="0.5"/>
+<path d="M362,116 Q370,113 374,118 Q374,126 368,128 Q362,126 360,120 Z" fill="#8B6914" opacity="0.45"/>
+<circle cx="340" cy="112" r="52" fill="none" stroke="#c8960c" stroke-width="2"/>
+<rect x="326" y="164" width="28" height="14" rx="3" fill="url(#tg1)"/>
+<line x1="340" y1="52" x2="340" y2="36" stroke="#ffe87c" stroke-width="2.5" opacity="0.9" stroke-linecap="round"/>
+<line x1="358" y1="56" x2="368" y2="42" stroke="#ffe87c" stroke-width="2" opacity="0.7" stroke-linecap="round"/>
+<line x1="322" y1="56" x2="312" y2="42" stroke="#ffe87c" stroke-width="2" opacity="0.7" stroke-linecap="round"/>
+<line x1="374" y1="68" x2="387" y2="58" stroke="#ffe87c" stroke-width="1.5" opacity="0.5" stroke-linecap="round"/>
+<line x1="306" y1="68" x2="293" y2="58" stroke="#ffe87c" stroke-width="1.5" opacity="0.5" stroke-linecap="round"/>
+<polygon points="340,26 343.5,36 354,36 345.5,42.5 348.5,53 340,46.5 331.5,53 334.5,42.5 326,36 336.5,36" fill="#ffe87c" opacity="0.95"/>
+</svg></div>
 </div>
 """, unsafe_allow_html=True)
 
