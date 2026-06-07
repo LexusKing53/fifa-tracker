@@ -792,8 +792,36 @@ with tab3:
                         st.session_state.sf = advance_round(st.session_state.qf)
                     st.session_state.sf = render_round(st.session_state.sf, "🔥 SEMIFINALS", "sf")
 
-                    # ── FINAL ─────────────────────────────────────────────
+                    # ── 3RD PLACE PLAYOFF ─────────────────────────────────
                     sf_complete = st.session_state.sf["Winner"].ne("").all()
+                    if sf_complete:
+                        # Build 3rd place match from SF losers
+                        if "third_place" not in st.session_state or len(st.session_state.get("third_place", [])) == 0:
+                            sf_losers = []
+                            for _, row in st.session_state.sf.iterrows():
+                                loser = row["Team A"] if row["Winner"] == row["Team B"] else row["Team B"]
+                                sf_losers.append(loser)
+                            if len(sf_losers) == 2:
+                                st.session_state.third_place = pd.DataFrame([{
+                                    "Match": "3rd Place",
+                                    "Team A": sf_losers[0],
+                                    "Team B": sf_losers[1],
+                                    "Status": "Upcoming",
+                                    "Winner": ""
+                                }])
+
+                        if "third_place" in st.session_state:
+                            st.session_state.third_place = render_round(st.session_state.third_place, "🥉 3RD PLACE PLAYOFF", "third_place")
+                            third_winner = st.session_state.third_place["Winner"].iloc[0] if st.session_state.third_place["Winner"].iloc[0] else None
+                            if third_winner:
+                                st.markdown(f"""
+                                <div style='text-align:center;padding:1rem;background:linear-gradient(135deg,#1a1a00,#2a2a10);border:2px solid #CD7F32;border-radius:16px;margin-top:0.5rem'>
+                                    <div style='font-size:2.5rem'>{flag(third_winner)}</div>
+                                    <div style='font-family:Bebas Neue,sans-serif;font-size:2rem;color:#CD7F32;letter-spacing:3px'>{third_winner}</div>
+                                    <div style='color:#8a9ab5;font-size:0.9rem;margin-top:0.3rem'>🥉 3RD PLACE</div>
+                                </div>""", unsafe_allow_html=True)
+
+                    # ── FINAL ─────────────────────────────────────────────────
                     if sf_complete:
                         if "final" not in st.session_state or len(st.session_state.final) == 0:
                             st.session_state.final = advance_round(st.session_state.sf)
@@ -810,7 +838,7 @@ with tab3:
                             </div>""", unsafe_allow_html=True)
 
         if st.button("🔄 Reset Bracket", type="secondary"):
-            for key in ["r32", "r16", "qf", "sf", "final"]:
+            for key in ["r32", "r16", "qf", "sf", "third_place", "final"]:
                 if key in st.session_state:
                     del st.session_state[key]
             st.rerun()
