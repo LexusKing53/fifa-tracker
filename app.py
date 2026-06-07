@@ -625,7 +625,7 @@ st.markdown("""
         </div>
         <span class='spin-ball'>⚽</span>
     </div>
-    <div class='trophy-img' style='margin-right:1.5rem;flex-shrink:0'><svg width="180" height="240" viewBox="0 0 680 580" role="img" xmlns="http://www.w3.org/2000/svg">
+    <div class='trophy-img' style='margin:0 auto;flex-shrink:0'><svg width="260" height="340" viewBox="0 0 680 580" role="img" xmlns="http://www.w3.org/2000/svg">
 <defs>
   <linearGradient id="tg1" x1="0%" y1="0%" x2="100%" y2="0%">
     <stop offset="0%" style="stop-color:#5a3c08"/>
