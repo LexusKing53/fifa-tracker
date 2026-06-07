@@ -114,14 +114,22 @@ GROUP_COLORS = {
 # ── CUSTOM CSS ───────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
-/* Hide Streamlit toolbar, hamburger menu, footer, GitHub link */
-#MainMenu {visibility: hidden !important;}
-header[data-testid="stHeader"] {visibility: hidden !important;}
-footer {visibility: hidden !important;}
-[data-testid="stToolbar"] {visibility: hidden !important;}
+/* Hide Streamlit toolbar, hamburger menu, footer, GitHub link, Manage app */
+#MainMenu {visibility: hidden !important; display: none !important;}
+header[data-testid="stHeader"] {visibility: hidden !important; display: none !important;}
+footer {visibility: hidden !important; display: none !important;}
+[data-testid="stToolbar"] {visibility: hidden !important; display: none !important;}
 [data-testid="stDecoration"] {display: none !important;}
+[data-testid="stStatusWidget"] {display: none !important;}
 .stDeployButton {display: none !important;}
 a[href*="github"] {display: none !important;}
+.viewerBadge_container__r5tak {display: none !important;}
+.viewerBadge_link__qRIco {display: none !important;}
+#stDecoration {display: none !important;}
+button[kind="header"] {display: none !important;}
+[data-testid="manage-app-button"] {display: none !important;}
+iframe[title="streamlit_analytics"] {display: none !important;}
+div[class*="StatusWidget"] {display: none !important;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -550,16 +558,18 @@ def is_match_locked(match_row):
         return False
 
 def score_predictions(predictions, matches):
-    updated = predictions.copy()
-    for idx, row in updated.iterrows():
+    updated = predictions.copy().reset_index(drop=True)
+    for idx in range(len(updated)):
+        row = updated.iloc[idx]
         match = matches[matches["Match ID"] == row["Match ID"]]
         if len(match) == 0:
             continue
         match = match.iloc[0]
         if match["Status"] != "Finished":
-            updated.at[idx, "Correct"] = ""
+            updated.iloc[idx, updated.columns.get_loc("Correct")] = ""
             continue
-        updated.at[idx, "Correct"] = "✅" if row["Predicted Winner"] == match["Winner"] else "❌"
+        correct = "✅" if str(row["Predicted Winner"]) == str(match["Winner"]) else "❌"
+        updated.iloc[idx, updated.columns.get_loc("Correct")] = correct
     return updated
 
 def get_leaderboard(predictions):
