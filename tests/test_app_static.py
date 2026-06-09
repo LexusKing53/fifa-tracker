@@ -114,3 +114,15 @@ def test_app_has_language_selector_and_translation_helper():
     assert 'st.radio("Language / Idioma"' in SOURCE
     assert 'lang = LANGUAGES[language_label]' in SOURCE
     assert 't("fixtures_tab", lang)' in SOURCE
+
+
+def test_fixture_cards_are_batched_for_fast_language_switching():
+    assert "fixture_cards_html = []" in SOURCE
+    assert 'fixture_cards_html.append(f"""' in SOURCE
+    assert 'st.markdown("\\n".join(fixture_cards_html), unsafe_allow_html=True)' in SOURCE
+
+
+def test_language_switch_does_not_trigger_auto_sync():
+    assert SOURCE.index('st.radio("Language / Idioma"') < SOURCE.index("# Auto-sync scores from API")
+    assert "language_changed = previous_lang is not None and previous_lang != lang" in SOURCE
+    assert "if not language_changed:" in SOURCE

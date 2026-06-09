@@ -635,15 +635,19 @@ if st_autorefresh:
 st.session_state.matches = ensure_columns(st.session_state.matches)
 st.session_state.matches = st.session_state.matches.apply(compute_match_outcome, axis=1)
 
-# Auto-sync scores from API
-st.session_state.matches, synced_count = auto_sync_scores(st.session_state.matches)
-if synced_count > 0:
-    st.toast(f"⚡ Auto-synced {synced_count} match score(s) from live API", icon="⚽")
-
-standings = build_standings(st.session_state.matches)
-
+previous_lang = st.session_state.get("lang")
 language_label = st.radio("Language / Idioma", list(LANGUAGES), horizontal=True, label_visibility="collapsed")
 lang = LANGUAGES[language_label]
+language_changed = previous_lang is not None and previous_lang != lang
+st.session_state.lang = lang
+
+# Auto-sync scores from API
+if not language_changed:
+    st.session_state.matches, synced_count = auto_sync_scores(st.session_state.matches)
+    if synced_count > 0:
+        st.toast(f"⚡ Auto-synced {synced_count} match score(s) from live API", icon="⚽")
+
+standings = build_standings(st.session_state.matches)
 
 # ── HEADER ────────────────────────────────────────────────────────────────────
 st.markdown("""
@@ -831,6 +835,7 @@ with tab1:
         g_letter = sel_group.replace("Group ", "")
         display_df = display_df[display_df["Group"] == g_letter]
 
+    fixture_cards_html = []
     for _, row in display_df.iterrows():
         grp_color = GROUP_COLORS.get(str(row["Group"]), "#748CF7")
         status_html = (
@@ -840,7 +845,7 @@ with tab1:
         )
         sa = row["Team A Score"] if row["Team A Score"] != "" else "—"
         sb = row["Team B Score"] if row["Team B Score"] != "" else "—"
-        st.markdown(f"""
+        fixture_cards_html.append(f"""
         <div class='match-card'>
             <div style='display:flex;align-items:center;gap:8px;min-width:180px'>
                 <span class='group-badge' style='background:{grp_color}22;color:{grp_color};border:1px solid {grp_color}44'>GRP {row["Group"]}</span>
@@ -855,7 +860,9 @@ with tab1:
                 <span class='team-name'>{row["Team B"]} {flag(row["Team B"])}</span>
             </div>
             <span style='color:#5a6a8a;font-size:0.8rem;min-width:120px;text-align:right'>🏟️ {row["Venue"]}</span>
-        </div>""", unsafe_allow_html=True)
+        </div>""")
+
+    st.markdown("\n".join(fixture_cards_html), unsafe_allow_html=True)
 
     st.markdown(f"<div class='section-title'>{t('edit_scores', lang)}</div>", unsafe_allow_html=True)
     edited = st.data_editor(
