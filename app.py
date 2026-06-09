@@ -47,6 +47,33 @@ FLAGS = {
     "Bolivia": "🇧🇴", "Cuba": "🇨🇺", "El Salvador": "🇸🇻", "Nicaragua": "🇳🇮",
 }
 
+TEAM_ALIASES = {
+    "Türkiye": "Turkey",
+    "Turkey": "Turkey",
+    "Côte d’Ivoire": "Ivory Coast",
+    "Côte d'Ivoire": "Ivory Coast",
+    "Cote d'Ivoire": "Ivory Coast",
+    "Curaçao": "Curacao",
+    "Curacao": "Curacao",
+    "Cabo Verde": "Cape Verde",
+    "Cape Verde": "Cape Verde",
+    "Korea Republic": "South Korea",
+    "Republic of Korea": "South Korea",
+    "IR Iran": "Iran",
+    "Islamic Republic of Iran": "Iran",
+    "Congo DR": "DR Congo",
+    "DR Congo": "DR Congo",
+    "USA": "United States",
+    "United States of America": "United States",
+    "Bosnia-Herzegovina": "Bosnia and Herzegovina",
+}
+
+
+def normalize_team_name(name):
+    team = str(name).strip()
+    return TEAM_ALIASES.get(team, team)
+
+
 # ── SPINNING BALL CSS ────────────────────────────────────────────────────────
 SPIN_BALL = """<span style='display:inline-block;animation:spin 2s linear infinite;font-size:3.5rem'>⚽</span>
 <style>@keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }</style>"""
@@ -105,7 +132,7 @@ KEY_PLAYERS = {
 }
 
 def flag(team):
-    return FLAGS.get(team, "🏳️")
+    return FLAGS.get(normalize_team_name(team), "🏳️")
 
 # ── GROUP COLORS ─────────────────────────────────────────────────────────────
 GROUP_COLORS = {
@@ -512,8 +539,8 @@ def auto_sync_scores(matches_df):
         if status not in ("FINISHED", "IN_PLAY", "PAUSED"):
             continue
 
-        home = m["homeTeam"]["name"]
-        away = m["awayTeam"]["name"]
+        home = normalize_team_name(m["homeTeam"]["name"])
+        away = normalize_team_name(m["awayTeam"]["name"])
         score = m.get("score", {})
         full = score.get("fullTime", {})
         home_score = full.get("home")
@@ -523,9 +550,11 @@ def auto_sync_scores(matches_df):
             continue
 
         # Match by team names (try both orderings)
+        team_a = updated["Team A"].map(normalize_team_name)
+        team_b = updated["Team B"].map(normalize_team_name)
         mask = (
-            ((updated["Team A"] == home) & (updated["Team B"] == away)) |
-            ((updated["Team A"] == away) & (updated["Team B"] == home))
+            ((team_a == home) & (team_b == away)) |
+            ((team_a == away) & (team_b == home))
         )
         if not mask.any():
             continue
@@ -534,7 +563,7 @@ def auto_sync_scores(matches_df):
         row = updated.loc[idx]
 
         # Flip scores if teams are reversed
-        if row["Team A"] == away:
+        if normalize_team_name(row["Team A"]) == away:
             home_score, away_score = away_score, home_score
 
         # Only update if score changed
@@ -829,7 +858,7 @@ with tab1:
     edited = st.data_editor(
         st.session_state.matches,
         num_rows="dynamic",
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
         column_config={
             "Match ID": st.column_config.NumberColumn("ID", disabled=True),
@@ -849,14 +878,14 @@ with tab1:
 
     c1, c2 = st.columns(2)
     with c1:
-        if st.button("💾 Save Fixtures", use_container_width=True):
+        if st.button("💾 Save Fixtures", width="stretch"):
             st.session_state.matches = ensure_columns(edited.copy())
             st.session_state.matches = st.session_state.matches.apply(compute_match_outcome, axis=1)
             save_matches(st.session_state.matches)
             st.success("✅ Saved!")
     with c2:
         st.download_button("⬇️ Download CSV", data=edited.to_csv(index=False).encode("utf-8"),
-                           file_name="matches.csv", mime="text/csv", use_container_width=True)
+                           file_name="matches.csv", mime="text/csv", width="stretch")
 
 # ════════════════════════════════════════════════════════════════════════════════
 with tab2:
@@ -873,7 +902,7 @@ with tab2:
             grp_df.index = grp_df.index + 1
 
             st.markdown(f"<h3 style='color:{grp_color};font-family:Bebas Neue,sans-serif;letter-spacing:2px'>GROUP {grp}</h3>", unsafe_allow_html=True)
-            st.dataframe(grp_df, use_container_width=True)
+            st.dataframe(grp_df, width="stretch")
             st.markdown("<br>", unsafe_allow_html=True)
 
 # ════════════════════════════════════════════════════════════════════════════════
@@ -1035,7 +1064,7 @@ with tab4:
         top_teams["Team"] = top_teams.apply(lambda r: f"{r['Flag']} {r['Team']}", axis=1)
         top_teams = top_teams.drop("Flag", axis=1).reset_index(drop=True)
         top_teams.index = top_teams.index + 1
-        st.dataframe(top_teams, use_container_width=True)
+        st.dataframe(top_teams, width="stretch")
     else:
         st.info("Team performance stats will populate as matches are played.")
 
@@ -1085,7 +1114,7 @@ with tab5:
                     "GF": entry["goalsFor"], "GA": entry["goalsAgainst"],
                     "GD": entry["goalDifference"], "Pts": entry["points"]
                 })
-            st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+            st.dataframe(pd.DataFrame(rows), width="stretch", hide_index=True)
 
 # ════════════════════════════════════════════════════════════════════════════════
 with tab6:
@@ -1262,7 +1291,7 @@ with tab7:
             display_preds = my_preds[["Date", "Group", "Match", "Predicted Winner", "Correct"]].rename(
                 columns={"Predicted Winner": "Your Pick", "Correct": "Result"}
             )
-            st.dataframe(display_preds, use_container_width=True, hide_index=True)
+            st.dataframe(display_preds, width="stretch", hide_index=True)
 
         # ── ALL PLAYERS PREDICTIONS GRID ──────────────────────────────────────
         st.markdown("### 👥 Everyone's Picks")
@@ -1291,4 +1320,4 @@ with tab7:
                 grid = grid.drop(columns=[f"{p}_result"])
 
             display_grid = grid[["Date", "Group", "Match"] + all_players].sort_values("Date")
-            st.dataframe(display_grid, use_container_width=True, hide_index=True)
+            st.dataframe(display_grid, width="stretch", hide_index=True)

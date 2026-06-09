@@ -79,3 +79,25 @@ def test_header_has_mobile_layout_rules():
 
 def test_group_fixture_metric_is_not_labeled_as_total_upcoming():
     assert 'm3.metric("🕐 Group Fixtures", group_fixtures)' in SOURCE
+
+
+def test_streamlit_width_api_uses_current_parameter():
+    assert "use_container_width" not in SOURCE
+
+
+def test_api_team_aliases_cover_common_name_variants():
+    required_aliases = {
+        '"Türkiye": "Turkey"',
+        '"Côte d’Ivoire": "Ivory Coast"',
+        "\"Côte d'Ivoire\": \"Ivory Coast\"",
+        '"Curaçao": "Curacao"',
+        '"Cabo Verde": "Cape Verde"',
+        '"Korea Republic": "South Korea"',
+        '"IR Iran": "Iran"',
+        '"Congo DR": "DR Congo"',
+        '"USA": "United States"',
+    }
+
+    for alias in required_aliases:
+        assert alias in SOURCE
+    assert "def normalize_team_name(" in SOURCE
