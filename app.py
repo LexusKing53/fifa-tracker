@@ -3,6 +3,7 @@ import streamlit as st
 from pathlib import Path
 from datetime import datetime
 import requests
+from prediction_store import load_predictions, save_prediction
 
 try:
     from streamlit_autorefresh import st_autorefresh
@@ -581,17 +582,6 @@ def auto_sync_scores(matches_df):
     return updated, count
 
 # ── SESSION STATE ─────────────────────────────────────────────────────────────
-
-# ── PREDICTIONS ───────────────────────────────────────────────────────────────
-PREDICTIONS_FILE = Path("predictions.csv")
-
-def load_predictions():
-    if PREDICTIONS_FILE.exists():
-        return pd.read_csv(PREDICTIONS_FILE)
-    return pd.DataFrame(columns=["Player", "Match ID", "Predicted Winner", "Correct"])
-
-def save_predictions(df):
-    df.to_csv(PREDICTIONS_FILE, index=False)
 
 def is_match_locked(match_row):
     try:
@@ -1236,22 +1226,20 @@ with tab7:
                                        label_visibility="collapsed")
 
                     if pick != "— Pick a winner —" and pick != already_picked:
-                        # Save prediction
+                        save_prediction(player, match_id, pick)
+                        st.session_state.predictions = st.session_state.predictions[
+                            ~((st.session_state.predictions["Player"] == player) &
+                              (st.session_state.predictions["Match ID"] == match_id))
+                        ]
                         new_row = pd.DataFrame([{
                             "Player": player,
                             "Match ID": match_id,
                             "Predicted Winner": pick,
                             "Correct": ""
                         }])
-                        # Remove old prediction for this match if exists
-                        st.session_state.predictions = st.session_state.predictions[
-                            ~((st.session_state.predictions["Player"] == player) &
-                              (st.session_state.predictions["Match ID"] == match_id))
-                        ]
                         st.session_state.predictions = pd.concat(
                             [st.session_state.predictions, new_row], ignore_index=True
                         )
-                        save_predictions(st.session_state.predictions)
                         made_any = True
 
         # ── LEADERBOARD ───────────────────────────────────────────────────────
