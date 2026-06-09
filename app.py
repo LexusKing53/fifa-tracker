@@ -648,30 +648,23 @@ st.markdown("""
 @keyframes trophyGlow { 0%,100%{filter:drop-shadow(0 0 6px #f7c94888)} 50%{filter:drop-shadow(0 0 18px #f7c948cc)} }
 .spin-ball { display:inline-block; animation:spin 2s linear infinite; font-size:3.5rem; line-height:1; }
 .trophy-img { animation:trophyGlow 3s ease-in-out infinite; }
-.hero-shell { display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:0.5rem 0; }
-.hero-title-wrap { display:flex; align-items:center; gap:1rem; min-width:0; }
+.hero-shell { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.75rem; padding:0.5rem 0 0.75rem; text-align:center; }
+.hero-title-wrap { display:flex; flex-direction:column; align-items:center; text-align:center; gap:0.45rem; min-width:0; }
+.hero-title-line { display:flex; align-items:center; justify-content:center; gap:1rem; }
 .hero-title { font-size:clamp(2rem, 5vw, 3.5rem); margin:0; color:#F7C948; font-family:Bebas Neue,sans-serif; letter-spacing:3px; white-space:normal; overflow-wrap:normal; }
 .hero-updated { color:#5a6a8a; margin:0; font-size:0.85rem; }
 .trophy-img svg { width:clamp(150px, 22vw, 260px); height:auto; display:block; }
 @media (max-width: 640px) {
     .hero-shell { align-items:center; gap:0.65rem; }
-    .hero-title-wrap { gap:0.5rem; flex:1 1 auto; }
-    .hero-title { font-size:2rem; line-height:0.95; letter-spacing:1px; max-width:10ch; }
+    .hero-title-wrap { gap:0.4rem; }
+    .hero-title-line { gap:0.5rem; }
+    .hero-title { font-size:2rem; line-height:0.95; letter-spacing:1px; max-width:12ch; }
     .hero-updated { font-size:0.72rem; }
     .spin-ball { font-size:1.6rem; }
-    .trophy-img { flex:0 0 auto; }
     .trophy-img svg { width:96px; }
 }
 </style>
 <div class='hero-shell'>
-    <div class='hero-title-wrap'>
-        <span class='spin-ball'>⚽</span>
-        <div>
-            <h1 class='hero-title'>FIFA WORLD CUP 2026</h1>
-            <p class='hero-updated'>🔄 Updated """ + datetime.now().strftime('%Y-%m-%d %H:%M:%S') + """</p>
-        </div>
-        <span class='spin-ball'>⚽</span>
-    </div>
     <div class='trophy-img'><svg width="260" height="340" viewBox="0 0 680 580" role="img" xmlns="http://www.w3.org/2000/svg">
 <defs>
   <linearGradient id="tg1" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -767,6 +760,14 @@ st.markdown("""
 <line x1="306" y1="68" x2="293" y2="58" stroke="#ffe87c" stroke-width="1.5" opacity="0.5" stroke-linecap="round"/>
 <polygon points="340,26 343.5,36 354,36 345.5,42.5 348.5,53 340,46.5 331.5,53 334.5,42.5 326,36 336.5,36" fill="#ffe87c" opacity="0.95"/>
 </svg></div>
+    <div class='hero-title-wrap'>
+        <div class='hero-title-line'>
+            <span class='spin-ball'>⚽</span>
+            <h1 class='hero-title'>FIFA WORLD CUP 2026</h1>
+            <span class='spin-ball'>⚽</span>
+        </div>
+        <p class='hero-updated'>🔄 Updated """ + datetime.now().strftime('%Y-%m-%d %H:%M:%S') + """</p>
+    </div>
 </div>
 """, unsafe_allow_html=True)
 

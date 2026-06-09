@@ -77,6 +77,12 @@ def test_header_has_mobile_layout_rules():
     assert "hero-shell" in SOURCE
 
 
+def test_trophy_is_centered_above_title_in_hero():
+    assert ".hero-shell { display:flex; flex-direction:column; align-items:center; justify-content:center;" in SOURCE
+    assert SOURCE.index("<div class='trophy-img'>") < SOURCE.index("<div class='hero-title-wrap'>")
+    assert ".hero-title-wrap { display:flex; flex-direction:column; align-items:center; text-align:center;" in SOURCE
+
+
 def test_group_fixture_metric_is_not_labeled_as_total_upcoming():
     assert 'm3.metric("🕐 Group Fixtures", group_fixtures)' in SOURCE
 
