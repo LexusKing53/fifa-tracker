@@ -12,7 +12,13 @@ except Exception:
 st.set_page_config(page_title="FIFA 2026 Tracker", page_icon="⚽", layout="wide")
 
 # ── API ──────────────────────────────────────────────────────────────────────
-API_KEY = st.secrets.get("FOOTBALL_API_KEY", "f477119f97c044af967a2834846259a6")
+def get_secret(name):
+    try:
+        return st.secrets.get(name, "")
+    except Exception:
+        return ""
+
+API_KEY = get_secret("FOOTBALL_API_KEY")
 API_BASE = "https://api.football-data.org/v4"
 HEADERS = {"X-Auth-Token": API_KEY}
 WC2026_ID = 2000  # FIFA World Cup competition ID
@@ -29,7 +35,7 @@ FLAGS = {
     "Tunisia": "🇹🇳", "Saudi Arabia": "🇸🇦", "Iran": "🇮🇷", "Qatar": "🇶🇦",
     "South Africa": "🇿🇦", "Nigeria": "🇳🇬", "Czechia": "🇨🇿", "Paraguay": "🇵🇾",
     "Colombia": "🇨🇴", "Venezuela": "🇻🇪", "Chile": "🇨🇱", "Peru": "🇵🇪",
-    "Turkey": "🇹🇷", "Ukraine": "🇺🇦", "Austria": "🇦🇹", "Hungary": "🇭🇺",
+    "Turkey": "🇹🇷", "Sweden": "🇸🇪", "Ukraine": "🇺🇦", "Austria": "🇦🇹", "Hungary": "🇭🇺",
     "Romania": "🇷🇴", "Slovakia": "🇸🇰", "Slovenia": "🇸🇮", "Albania": "🇦🇱",
     "New Zealand": "🇳🇿", "Costa Rica": "🇨🇷", "Panama": "🇵🇦", "Honduras": "🇭🇳",
     "Guatemala": "🇬🇹", "Jamaica": "🇯🇲", "Trinidad and Tobago": "🇹🇹",
@@ -69,19 +75,15 @@ KEY_PLAYERS = {
     "Ecuador":     [("Moisés Caicedo","Midfielder","Chelsea"),("Enner Valencia","Forward","LDU Quito"),("Piero Hincapié","Defender","Bayer Leverkusen"),("Jeremy Sarmiento","Forward","Brighton"),("Gonzalo Plata","Forward","Valladolid")],
     "Switzerland": [("Granit Xhaka","Midfielder","Bayer Leverkusen"),("Xherdan Shaqiri","Forward","Chicago Fire"),("Manuel Akanji","Defender","Man City"),("Breel Embolo","Forward","Monaco"),("Yann Sommer","Goalkeeper","Inter Milan")],
     "Croatia":     [("Luka Modrić","Midfielder","Real Madrid"),("Ivan Perišić","Forward","Hajduk Split"),("Mateo Kovačić","Midfielder","Man City"),("Dominik Livaković","Goalkeeper","Fenerbahçe"),("Joško Gvardiol","Defender","Man City")],
-    "Denmark":     [("Christian Eriksen","Midfielder","Man United"),("Pierre-Emile Højbjerg","Midfielder","Marseille"),("Rasmus Højlund","Forward","Man United"),("Kasper Schmeichel","Goalkeeper","Anderlecht"),("Joakim Mæhle","Defender","Atalanta")],
-    "Poland":      [("Robert Lewandowski","Forward","Barcelona"),("Piotr Zieliński","Midfielder","Inter Milan"),("Wojciech Szczęsny","Goalkeeper","Barcelona"),("Jakub Kiwior","Defender","Arsenal"),("Nicola Zalewski","Midfielder","Roma")],
-    "Serbia":      [("Aleksandar Mitrović","Forward","Al Hilal"),("Dušan Vlahović","Forward","Juventus"),("Nemanja Gudelj","Midfielder","Sevilla"),("Vanja Milinković-Savić","Goalkeeper","Torino"),("Dušan Tadić","Midfielder","Fenerbahçe")],
     "Iran":        [("Sardar Azmoun","Forward","Bayer Leverkusen"),("Alireza Jahanbakhsh","Forward","Feyenoord"),("Mehdi Taremi","Forward","Inter Milan"),("Ali Beiranvand","Goalkeeper","Persepolis"),("Saman Ghoddos","Midfielder","Brentford")],
     "Saudi Arabia":[("Salem Al-Dawsari","Forward","Al Hilal"),("Mohammed Al-Owais","Goalkeeper","Al Hilal"),("Saud Abdulhamid","Defender","Roma"),("Firas Al-Buraikan","Forward","Al Fateh"),("Saleh Al-Shehri","Forward","Al Hilal")],
     "Ghana":       [("Jordan Ayew","Forward","Crystal Palace"),("Thomas Partey","Midfielder","Arsenal"),("André Ayew","Forward","Le Havre"),("Mohammed Kudus","Forward","West Ham"),("Lawrence Ati-Zigi","Goalkeeper","St. Gallen")],
     "Ivory Coast": [("Sébastien Haller","Forward","Dortmund"),("Franck Kessié","Midfielder","Barcelona"),("Serge Aurier","Defender","Villarreal"),("Wilfried Zaha","Forward","Galatasaray"),("Maxwel Cornet","Forward","Southampton")],
     "Egypt":       [("Mohamed Salah","Forward","Liverpool"),("Mohamed El Shenawy","Goalkeeper","Al Ahly"),("Ahmed Hegazy","Defender","Al Ittihad"),("Trezeguet","Forward","Istanbul Başakşehir"),("Amr El Sulaya","Midfielder","Al Ahly")],
-    "Nigeria":     [("Victor Osimhen","Forward","Napoli"),("Wilfred Ndidi","Midfielder","Leicester"),("Alex Iwobi","Midfielder","Fulham"),("Stanley Nwabali","Goalkeeper","Chippa United"),("Semi Ajayi","Defender","West Brom")],
     "Scotland":    [("Andrew Robertson","Defender","Liverpool"),("Scott McTominay","Midfielder","Napoli"),("Kieran Tierney","Defender","Real Sociedad"),("Angus Gunn","Goalkeeper","Norwich"),("John McGinn","Midfielder","Aston Villa")],
     "Turkey":      [("Hakan Çalhanoğlu","Midfielder","Inter Milan"),("Arda Güler","Midfielder","Real Madrid"),("Kenan Yıldız","Forward","Juventus"),("Çağlar Söyüncü","Defender","Atlético Madrid"),("Mert Günok","Goalkeeper","Beşiktaş")],
     "Austria":     [("David Alaba","Defender","Real Madrid"),("Marcel Sabitzer","Midfielder","Dortmund"),("Marko Arnautović","Forward","Man United"),("Konrad Laimer","Midfielder","Bayern Munich"),("Patrick Pentz","Goalkeeper","Bayer Leverkusen")],
-    "Ukraine":     [("Oleksandr Zinchenko","Defender","Arsenal"),("Mykhailo Mudryk","Forward","Chelsea"),("Viktor Tsygankov","Forward","Girona"),("Georgiy Sudakov","Midfielder","Shakhtar"),("Andriy Lunin","Goalkeeper","Real Madrid")],
+    "Sweden":      [("Alexander Isak","Forward","Newcastle"),("Viktor Gyökeres","Forward","Sporting CP"),("Dejan Kulusevski","Forward","Tottenham"),("Emil Forsberg","Midfielder","New York RB"),("Victor Lindelöf","Defender","Man United")],
     "Paraguay":    [("Miguel Almirón","Midfielder","Newcastle"),("Matías Villasanti","Midfielder","Grêmio"),("Gustavo Gómez","Defender","Palmeiras"),("Antony Silva","Goalkeeper","Olimpia"),("Antonio Sanabria","Forward","Torino")],
     "Norway":      [("Erling Haaland","Forward","Man City"),("Martin Ødegaard","Midfielder","Arsenal"),("Alexander Sørloth","Forward","Atlético Madrid"),("Sander Berge","Midfielder","Burnley"),("Ørjan Nyland","Goalkeeper","Southampton")],
     "Algeria":     [("Riyad Mahrez","Forward","Al Ahli"),("Ismaël Bennacer","Midfielder","AC Milan"),("Youcef Atal","Defender","Nice"),("Andy Delort","Forward","Nice"),("Aïssa Mandi","Defender","Villarreal")],
@@ -97,6 +99,8 @@ KEY_PLAYERS = {
     "Panama":      [("Rolando Blackburn","Forward","Nottm Forest"),("Roderick Miller","Midfielder","Sporting KC"),("Anibal Godoy","Midfielder","Nashville SC"),("Orlando Mosquera","Goalkeeper","FC Dallas"),("Adalberto Carrasquilla","Midfielder","Hartford Athletic")],
     "Bosnia and Herzegovina":[("Edin Džeko","Forward","Fenerbahçe"),("Miralem Pjanić","Midfielder","Sharjah"),("Aleksandar Đorđević","Defender","Sparta Prague"),("Nikola Jurčević","Goalkeeper","Dinamo Zagreb"),("Vedran Ćorluka","Defender","Lokomotiv Moscow")],
     "Curacao":     [("Juriën Timber","Defender","Arsenal"),("Leandro Bacuna","Midfielder","Cardiff City"),("Cuco Martina","Defender","Stoke City"),("Quentin Boisgard","Forward","Nantes"),("Elson Hooi","Forward","ADO Den Haag")],
+    "Czechia":     [("Patrik Schick","Forward","Bayer Leverkusen"),("Tomáš Souček","Midfielder","West Ham"),("Adam Hložek","Forward","Hoffenheim"),("Antonín Barák","Midfielder","Fiorentina"),("Vladimír Coufal","Defender","West Ham")],
+    "South Africa":[("Percy Tau","Forward","Al Ahly"),("Ronwen Williams","Goalkeeper","Mamelodi Sundowns"),("Teboho Mokoena","Midfielder","Mamelodi Sundowns"),("Lyle Foster","Forward","Burnley"),("Mothobi Mvala","Defender","Mamelodi Sundowns")],
     "Scotland":    [("Andrew Robertson","Defender","Liverpool"),("Scott McTominay","Midfielder","Napoli"),("Kieran Tierney","Defender","Real Sociedad"),("Angus Gunn","Goalkeeper","Norwich"),("John McGinn","Midfielder","Aston Villa")],
 }
 
@@ -288,13 +292,13 @@ DEFAULT_MATCHES = pd.DataFrame([
     {"Match ID": 30, "Group": "E", "Date": "2026-06-25", "Team A": "Curacao",      "Team B": "Ivory Coast",  "Team A Score": "", "Team B Score": "", "Winner": "", "Loser": "", "Status": "Upcoming", "Venue": "Philadelphia Stadium"},
     # ── GROUP F ──────────────────────────────────────────────────────────────
     {"Match ID": 31, "Group": "F", "Date": "2026-06-14", "Team A": "Netherlands",  "Team B": "Japan",        "Team A Score": "", "Team B Score": "", "Winner": "", "Loser": "", "Status": "Upcoming", "Venue": "Dallas Stadium"},
-    {"Match ID": 32, "Group": "F", "Date": "2026-06-14", "Team A": "Ukraine",      "Team B": "Tunisia",      "Team A Score": "", "Team B Score": "", "Winner": "", "Loser": "", "Status": "Upcoming", "Venue": "Estadio Monterrey"},
-    {"Match ID": 33, "Group": "F", "Date": "2026-06-20", "Team A": "Netherlands",  "Team B": "Ukraine",      "Team A Score": "", "Team B Score": "", "Winner": "", "Loser": "", "Status": "Upcoming", "Venue": "Houston Stadium"},
+    {"Match ID": 32, "Group": "F", "Date": "2026-06-14", "Team A": "Sweden",       "Team B": "Tunisia",      "Team A Score": "", "Team B Score": "", "Winner": "", "Loser": "", "Status": "Upcoming", "Venue": "Estadio Monterrey"},
+    {"Match ID": 33, "Group": "F", "Date": "2026-06-20", "Team A": "Netherlands",  "Team B": "Sweden",       "Team A Score": "", "Team B Score": "", "Winner": "", "Loser": "", "Status": "Upcoming", "Venue": "Houston Stadium"},
     {"Match ID": 34, "Group": "F", "Date": "2026-06-20", "Team A": "Tunisia",      "Team B": "Japan",        "Team A Score": "", "Team B Score": "", "Winner": "", "Loser": "", "Status": "Upcoming", "Venue": "Estadio Monterrey"},
-    {"Match ID": 35, "Group": "F", "Date": "2026-06-25", "Team A": "Japan",        "Team B": "Ukraine",      "Team A Score": "", "Team B Score": "", "Winner": "", "Loser": "", "Status": "Upcoming", "Venue": "Dallas Stadium"},
+    {"Match ID": 35, "Group": "F", "Date": "2026-06-25", "Team A": "Japan",        "Team B": "Sweden",       "Team A Score": "", "Team B Score": "", "Winner": "", "Loser": "", "Status": "Upcoming", "Venue": "Dallas Stadium"},
     {"Match ID": 36, "Group": "F", "Date": "2026-06-25", "Team A": "Tunisia",      "Team B": "Netherlands",  "Team A Score": "", "Team B Score": "", "Winner": "", "Loser": "", "Status": "Upcoming", "Venue": "Kansas City Stadium"},
     # ── GROUP G ──────────────────────────────────────────────────────────────
-    {"Match ID": 37, "Group": "G", "Date": "2026-06-15", "Team A": "Belgium",      "Team B": "Egypt",        "Team A Score": "", "Team B Score": "", "Winner": "", "Loser": "", "Status": "Upcoming", "Venue": "BC Place"},
+    {"Match ID": 37, "Group": "G", "Date": "2026-06-15", "Team A": "Belgium",      "Team B": "Egypt",        "Team A Score": "", "Team B Score": "", "Winner": "", "Loser": "", "Status": "Upcoming", "Venue": "Seattle Stadium"},
     {"Match ID": 38, "Group": "G", "Date": "2026-06-15", "Team A": "Iran",         "Team B": "New Zealand",  "Team A Score": "", "Team B Score": "", "Winner": "", "Loser": "", "Status": "Upcoming", "Venue": "Los Angeles Stadium"},
     {"Match ID": 39, "Group": "G", "Date": "2026-06-21", "Team A": "Belgium",      "Team B": "Iran",         "Team A Score": "", "Team B Score": "", "Winner": "", "Loser": "", "Status": "Upcoming", "Venue": "Los Angeles Stadium"},
     {"Match ID": 40, "Group": "G", "Date": "2026-06-21", "Team A": "New Zealand",  "Team B": "Egypt",        "Team A Score": "", "Team B Score": "", "Winner": "", "Loser": "", "Status": "Upcoming", "Venue": "BC Place"},
@@ -433,6 +437,8 @@ def advance_round(prev_round_df):
 
 @st.cache_data(ttl=300)
 def fetch_live_matches():
+    if not API_KEY:
+        return []
     try:
         r = requests.get(f"{API_BASE}/competitions/WC/matches?status=LIVE", headers=HEADERS, timeout=5)
         if r.status_code == 200:
@@ -443,6 +449,8 @@ def fetch_live_matches():
 
 @st.cache_data(ttl=300)
 def fetch_todays_matches():
+    if not API_KEY:
+        return []
     try:
         today = datetime.now().strftime("%Y-%m-%d")
         r = requests.get(f"{API_BASE}/competitions/WC/matches?dateFrom={today}&dateTo={today}", headers=HEADERS, timeout=5)
@@ -454,6 +462,8 @@ def fetch_todays_matches():
 
 @st.cache_data(ttl=600)
 def fetch_top_scorers():
+    if not API_KEY:
+        return []
     try:
         r = requests.get(f"{API_BASE}/competitions/WC/scorers?limit=10", headers=HEADERS, timeout=5)
         if r.status_code == 200:
@@ -464,6 +474,8 @@ def fetch_top_scorers():
 
 @st.cache_data(ttl=600)
 def fetch_standings_api():
+    if not API_KEY:
+        return []
     try:
         r = requests.get(f"{API_BASE}/competitions/WC/standings", headers=HEADERS, timeout=5)
         if r.status_code == 200:
@@ -476,6 +488,8 @@ def fetch_standings_api():
 @st.cache_data(ttl=120)
 def fetch_all_wc_matches():
     """Fetch all WC matches from API — used to auto-sync scores."""
+    if not API_KEY:
+        return []
     try:
         r = requests.get(f"{API_BASE}/competitions/WC/matches", headers=HEADERS, timeout=8)
         if r.status_code == 200:
@@ -615,17 +629,31 @@ st.markdown("""
 @keyframes trophyGlow { 0%,100%{filter:drop-shadow(0 0 6px #f7c94888)} 50%{filter:drop-shadow(0 0 18px #f7c948cc)} }
 .spin-ball { display:inline-block; animation:spin 2s linear infinite; font-size:3.5rem; line-height:1; }
 .trophy-img { animation:trophyGlow 3s ease-in-out infinite; }
+.hero-shell { display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:0.5rem 0; }
+.hero-title-wrap { display:flex; align-items:center; gap:1rem; min-width:0; }
+.hero-title { font-size:clamp(2rem, 5vw, 3.5rem); margin:0; color:#F7C948; font-family:Bebas Neue,sans-serif; letter-spacing:3px; white-space:normal; overflow-wrap:normal; }
+.hero-updated { color:#5a6a8a; margin:0; font-size:0.85rem; }
+.trophy-img svg { width:clamp(150px, 22vw, 260px); height:auto; display:block; }
+@media (max-width: 640px) {
+    .hero-shell { align-items:center; gap:0.65rem; }
+    .hero-title-wrap { gap:0.5rem; flex:1 1 auto; }
+    .hero-title { font-size:2rem; line-height:0.95; letter-spacing:1px; max-width:10ch; }
+    .hero-updated { font-size:0.72rem; }
+    .spin-ball { font-size:1.6rem; }
+    .trophy-img { flex:0 0 auto; }
+    .trophy-img svg { width:96px; }
+}
 </style>
-<div style='display:flex;align-items:center;justify-content:space-between;padding:0.5rem 0'>
-    <div style='display:flex;align-items:center;gap:1rem'>
+<div class='hero-shell'>
+    <div class='hero-title-wrap'>
         <span class='spin-ball'>⚽</span>
         <div>
-            <h1 style='font-size:3.5rem;margin:0;color:#F7C948;font-family:Bebas Neue,sans-serif;letter-spacing:3px'>FIFA WORLD CUP 2026</h1>
-            <p style='color:#5a6a8a;margin:0;font-size:0.85rem'>🔄 Updated """ + datetime.now().strftime('%Y-%m-%d %H:%M:%S') + """</p>
+            <h1 class='hero-title'>FIFA WORLD CUP 2026</h1>
+            <p class='hero-updated'>🔄 Updated """ + datetime.now().strftime('%Y-%m-%d %H:%M:%S') + """</p>
         </div>
         <span class='spin-ball'>⚽</span>
     </div>
-    <div class='trophy-img' style='margin:0 auto;flex-shrink:0'><svg width="260" height="340" viewBox="0 0 680 580" role="img" xmlns="http://www.w3.org/2000/svg">
+    <div class='trophy-img'><svg width="260" height="340" viewBox="0 0 680 580" role="img" xmlns="http://www.w3.org/2000/svg">
 <defs>
   <linearGradient id="tg1" x1="0%" y1="0%" x2="100%" y2="0%">
     <stop offset="0%" style="stop-color:#5a3c08"/>
@@ -747,11 +775,11 @@ if live:
 m1, m2, m3, m4 = st.columns(4)
 total = len(st.session_state.matches)
 finished = int((st.session_state.matches["Status"] == "Finished").sum())
-upcoming = int((st.session_state.matches["Status"] == "Upcoming").sum())
+group_fixtures = len(st.session_state.matches)
 groups = st.session_state.matches["Group"].nunique()
 m1.metric("⚽ Total Matches", "104", "72 Group + 32 Knockout")
 m2.metric("✅ Finished", finished)
-m3.metric("🕐 Upcoming", upcoming)
+m3.metric("🕐 Group Fixtures", group_fixtures)
 m4.metric("🏟️ Groups", groups)
 
 st.markdown("---")
