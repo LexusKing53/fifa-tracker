@@ -84,7 +84,7 @@ def test_trophy_is_centered_above_title_in_hero():
 
 
 def test_group_fixture_metric_is_not_labeled_as_total_upcoming():
-    assert 'm3.metric("🕐 Group Fixtures", group_fixtures)' in SOURCE
+    assert 'm3.metric(t("group_fixtures", lang), group_fixtures)' in SOURCE
 
 
 def test_streamlit_width_api_uses_current_parameter():
@@ -107,3 +107,10 @@ def test_api_team_aliases_cover_common_name_variants():
     for alias in required_aliases:
         assert alias in SOURCE
     assert "def normalize_team_name(" in SOURCE
+
+
+def test_app_has_language_selector_and_translation_helper():
+    assert "from translations import LANGUAGES, t" in SOURCE
+    assert 'st.radio("Language / Idioma"' in SOURCE
+    assert 'lang = LANGUAGES[language_label]' in SOURCE
+    assert 't("fixtures_tab", lang)' in SOURCE

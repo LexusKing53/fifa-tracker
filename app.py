@@ -4,6 +4,7 @@ from pathlib import Path
 from datetime import datetime
 import requests
 from prediction_store import load_predictions, save_prediction
+from translations import LANGUAGES, t
 
 try:
     from streamlit_autorefresh import st_autorefresh
@@ -641,6 +642,9 @@ if synced_count > 0:
 
 standings = build_standings(st.session_state.matches)
 
+language_label = st.radio("Language / Idioma", list(LANGUAGES), horizontal=True, label_visibility="collapsed")
+lang = LANGUAGES[language_label]
+
 # ── HEADER ────────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
@@ -797,25 +801,33 @@ total = len(st.session_state.matches)
 finished = int((st.session_state.matches["Status"] == "Finished").sum())
 group_fixtures = len(st.session_state.matches)
 groups = st.session_state.matches["Group"].nunique()
-m1.metric("⚽ Total Matches", "104", "72 Group + 32 Knockout")
-m2.metric("✅ Finished", finished)
-m3.metric("🕐 Group Fixtures", group_fixtures)
-m4.metric("🏟️ Groups", groups)
+m1.metric(t("total_matches", lang), "104", "72 Group + 32 Knockout")
+m2.metric(t("finished", lang), finished)
+m3.metric(t("group_fixtures", lang), group_fixtures)
+m4.metric(t("groups", lang), groups)
 
 st.markdown("---")
 
 # ── TABS ──────────────────────────────────────────────────────────────────────
-tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["📅 FIXTURES", "📊 STANDINGS", "🏆 BRACKET", "⭐ TOP PLAYERS", "📡 LIVE API", "👟 SQUADS", "🎯 PREDICTIONS"])
+tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
+    t("fixtures_tab", lang),
+    t("standings_tab", lang),
+    t("bracket_tab", lang),
+    t("top_players_tab", lang),
+    t("live_api_tab", lang),
+    t("squads_tab", lang),
+    t("predictions_tab", lang),
+])
 
 # ════════════════════════════════════════════════════════════════════════════════
 with tab1:
-    st.markdown("<div class='section-title'>MATCH FIXTURES</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='section-title'>{t('match_fixtures', lang)}</div>", unsafe_allow_html=True)
 
     groups_list = sorted(st.session_state.matches["Group"].unique())
-    sel_group = st.selectbox("Filter by Group", ["All Groups"] + [f"Group {g}" for g in groups_list], key="fixtures_group_filter")
+    sel_group = st.selectbox(t("filter_by_group", lang), [t("all_groups", lang)] + [f"Group {g}" for g in groups_list], key="fixtures_group_filter")
 
     display_df = st.session_state.matches.copy()
-    if sel_group != "All Groups":
+    if sel_group != t("all_groups", lang):
         g_letter = sel_group.replace("Group ", "")
         display_df = display_df[display_df["Group"] == g_letter]
 
@@ -845,7 +857,7 @@ with tab1:
             <span style='color:#5a6a8a;font-size:0.8rem;min-width:120px;text-align:right'>🏟️ {row["Venue"]}</span>
         </div>""", unsafe_allow_html=True)
 
-    st.markdown("<div class='section-title'>EDIT SCORES</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='section-title'>{t('edit_scores', lang)}</div>", unsafe_allow_html=True)
     edited = st.data_editor(
         st.session_state.matches,
         num_rows="dynamic",
@@ -869,20 +881,20 @@ with tab1:
 
     c1, c2 = st.columns(2)
     with c1:
-        if st.button("💾 Save Fixtures", width="stretch"):
+        if st.button(t("save_fixtures", lang), width="stretch"):
             st.session_state.matches = ensure_columns(edited.copy())
             st.session_state.matches = st.session_state.matches.apply(compute_match_outcome, axis=1)
             save_matches(st.session_state.matches)
-            st.success("✅ Saved!")
+            st.success(t("saved", lang))
     with c2:
-        st.download_button("⬇️ Download CSV", data=edited.to_csv(index=False).encode("utf-8"),
+        st.download_button(t("download_csv", lang), data=edited.to_csv(index=False).encode("utf-8"),
                            file_name="matches.csv", mime="text/csv", width="stretch")
 
 # ════════════════════════════════════════════════════════════════════════════════
 with tab2:
-    st.markdown("<div class='section-title'>GROUP STANDINGS</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='section-title'>{t('group_standings', lang)}</div>", unsafe_allow_html=True)
     if len(standings) == 0:
-        st.info("Enter match scores to generate standings.")
+        st.info(t("enter_scores", lang))
     else:
         for grp in sorted(standings["Group"].unique()):
             grp_color = GROUP_COLORS.get(str(grp), "#748CF7")
@@ -898,7 +910,7 @@ with tab2:
 
 # ════════════════════════════════════════════════════════════════════════════════
 with tab3:
-    st.markdown("<div class='section-title'>TOURNAMENT BRACKET</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='section-title'>{t('tournament_bracket', lang)}</div>", unsafe_allow_html=True)
     qualifiers = get_qualifiers(standings)
 
     if len(qualifiers) < 4:
@@ -1015,11 +1027,11 @@ with tab3:
 
 # ════════════════════════════════════════════════════════════════════════════════
 with tab4:
-    st.markdown("<div class='section-title'>TOP PERFORMERS</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='section-title'>{t('top_performers', lang)}</div>", unsafe_allow_html=True)
     scorers = fetch_top_scorers()
 
     if scorers:
-        st.markdown("### ⚽ Top Scorers")
+        st.markdown(t("top_scorers", lang))
         cols = st.columns(5)
         for i, s in enumerate(scorers[:10]):
             with cols[i % 5]:
@@ -1048,7 +1060,7 @@ with tab4:
         """)
 
     # Top teams by performance
-    st.markdown("### 🏆 Top Performing Teams")
+    st.markdown(t("top_teams", lang))
     if len(standings) > 0:
         top_teams = standings.nlargest(10, "Pts")[["Group", "Team", "P", "W", "D", "L", "GF", "GA", "GD", "Pts"]].copy()
         top_teams["Flag"] = top_teams["Team"].apply(flag)
@@ -1061,15 +1073,15 @@ with tab4:
 
 # ════════════════════════════════════════════════════════════════════════════════
 with tab5:
-    st.markdown("<div class='section-title'>LIVE API DATA</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='section-title'>{t('live_api_data', lang)}</div>", unsafe_allow_html=True)
 
-    if st.button("🔄 Refresh Live Data"):
+    if st.button(t("refresh_live", lang)):
         st.cache_data.clear()
         st.rerun()
 
     today_matches = fetch_todays_matches()
     if today_matches:
-        st.markdown("### 📅 Today's Matches")
+        st.markdown(t("todays_matches", lang))
         for m in today_matches:
             ha = m["homeTeam"]["name"]; hb = m["awayTeam"]["name"]
             sa = m["score"]["fullTime"]["home"]
@@ -1091,7 +1103,7 @@ with tab5:
 
     api_standings = fetch_standings_api()
     if api_standings:
-        st.markdown("### 📊 Live Standings from API")
+        st.markdown(t("live_standings", lang))
         for s in api_standings:
             st.markdown(f"**{s.get('group', 'Group')}**")
             rows = []
@@ -1109,17 +1121,17 @@ with tab5:
 
 # ════════════════════════════════════════════════════════════════════════════════
 with tab6:
-    st.markdown("<div class='section-title'>KEY PLAYERS BY TEAM</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='section-title'>{t('key_players', lang)}</div>", unsafe_allow_html=True)
 
     # Search
-    search = st.text_input("🔍 Search player or team", placeholder="e.g. Messi, Brazil, Forward...")
+    search = st.text_input(t("search_player", lang), placeholder=t("search_placeholder", lang))
 
     # Group filter
     all_groups = sorted(st.session_state.matches["Group"].unique())
-    group_filter = st.selectbox("Filter by Group", ["All Groups"] + [f"Group {g}" for g in all_groups], key="squads_group_filter")
+    group_filter = st.selectbox(t("filter_by_group", lang), [t("all_groups", lang)] + [f"Group {g}" for g in all_groups], key="squads_group_filter")
 
     # Build team list filtered by group
-    if group_filter != "All Groups":
+    if group_filter != t("all_groups", lang):
         g_letter = group_filter.replace("Group ", "")
         group_teams = pd.unique(st.session_state.matches[st.session_state.matches["Group"] == g_letter][["Team A", "Team B"]].values.ravel("K"))
         group_teams = [t for t in group_teams if t and str(t).strip()]
@@ -1167,30 +1179,30 @@ with tab6:
 
 # ════════════════════════════════════════════════════════════════════════════════
 with tab7:
-    st.markdown("<div class='section-title'>PREDICTION GAME</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='section-title'>{t('prediction_game', lang)}</div>", unsafe_allow_html=True)
 
     # ── PLAYER NAME ───────────────────────────────────────────────────────────
-    st.markdown("### 👤 Who are you?")
-    name_input = st.text_input("Enter your name to play", value=st.session_state.player_name,
+    st.markdown(t("who_are_you", lang))
+    name_input = st.text_input(t("enter_name", lang), value=st.session_state.player_name,
                                 placeholder="e.g. Ralph, Miru, Duke...", key="name_input")
     if name_input:
         st.session_state.player_name = name_input.strip()
 
     if not st.session_state.player_name:
-        st.info("Enter your name above to start making predictions.")
+        st.info(t("enter_name_info", lang))
     else:
         player = st.session_state.player_name
-        st.markdown(f"<p style='color:#48D8A0;font-weight:700'>Playing as: {player} 🎮</p>", unsafe_allow_html=True)
+        st.markdown(f"<p style='color:#48D8A0;font-weight:700'>{t('playing_as', lang)}: {player} 🎮</p>", unsafe_allow_html=True)
 
         # Score existing predictions
         st.session_state.predictions = score_predictions(st.session_state.predictions, st.session_state.matches)
 
         # ── UPCOMING MATCHES TO PREDICT ───────────────────────────────────────
-        st.markdown("### ⚽ Pick Your Winners")
+        st.markdown(t("pick_winners", lang))
         upcoming = st.session_state.matches[st.session_state.matches["Status"] != "Finished"].copy()
 
         if len(upcoming) == 0:
-            st.success("All matches have finished!")
+            st.success(t("all_finished", lang))
         else:
             made_any = False
             for _, match in upcoming.iterrows():
@@ -1213,11 +1225,12 @@ with tab7:
                     <span style='color:#5a6a8a;font-size:0.8rem'>{match["Date"]}</span>
                     <span style='font-weight:700'>{flag(match["Team A"])} {match["Team A"]} vs {match["Team B"]} {flag(match["Team B"])}</span>
                     {lock_badge}
-                    {"<span style='color:#F7C948;font-size:0.8rem'>Your pick: " + already_picked + "</span>" if already_picked else ""}
+                    {"<span style='color:#F7C948;font-size:0.8rem'>" + t("your_pick", lang) + ": " + already_picked + "</span>" if already_picked else ""}
                 </div>""", unsafe_allow_html=True)
 
                 if not locked:
-                    options = ["— Pick a winner —", match["Team A"], match["Team B"], "Draw"]
+                    pick_placeholder = t("pick_winner_placeholder", lang)
+                    options = [pick_placeholder, match["Team A"], match["Team B"], "Draw"]
                     current_idx = 0
                     if already_picked and already_picked in options:
                         current_idx = options.index(already_picked)
@@ -1226,7 +1239,7 @@ with tab7:
                                        key=f"pred_{player}_{match_id}",
                                        label_visibility="collapsed")
 
-                    if pick != "— Pick a winner —" and pick != already_picked:
+                    if pick != pick_placeholder and pick != already_picked:
                         save_prediction(player, match_id, pick)
                         st.session_state.predictions = st.session_state.predictions[
                             ~((st.session_state.predictions["Player"] == player) &
@@ -1244,10 +1257,10 @@ with tab7:
                         made_any = True
 
         # ── LEADERBOARD ───────────────────────────────────────────────────────
-        st.markdown("### 🏆 Leaderboard")
+        st.markdown(t("leaderboard", lang))
         lb = get_leaderboard(st.session_state.predictions)
         if len(lb) == 0:
-            st.info("Leaderboard populates once matches finish.")
+            st.info(t("leaderboard_empty", lang))
         else:
             medals = ["🥇", "🥈", "🥉"]
             for i, row in lb.iterrows():
@@ -1265,10 +1278,10 @@ with tab7:
                 </div>""", unsafe_allow_html=True)
 
         # ── MY PREDICTIONS ────────────────────────────────────────────────────
-        st.markdown("### 📋 My Predictions")
+        st.markdown(t("my_predictions", lang))
         my_preds = st.session_state.predictions[st.session_state.predictions["Player"] == player].copy()
         if len(my_preds) == 0:
-            st.info("You haven't made any predictions yet.")
+            st.info(t("no_my_predictions", lang))
         else:
             my_preds = my_preds.merge(
                 st.session_state.matches[["Match ID", "Team A", "Team B", "Date", "Group"]],
@@ -1283,10 +1296,10 @@ with tab7:
             st.dataframe(display_preds, width="stretch", hide_index=True)
 
         # ── ALL PLAYERS PREDICTIONS GRID ──────────────────────────────────────
-        st.markdown("### 👥 Everyone's Picks")
+        st.markdown(t("everyone_picks", lang))
         all_preds = st.session_state.predictions.copy()
         if len(all_preds) == 0:
-            st.info("No predictions made yet.")
+            st.info(t("no_predictions", lang))
         else:
             all_players = sorted(all_preds["Player"].unique())
             # Build match labels
