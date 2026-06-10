@@ -1207,6 +1207,7 @@ with tab7:
         # ── UPCOMING MATCHES TO PREDICT ───────────────────────────────────────
         st.markdown(t("pick_winners", lang))
         upcoming = st.session_state.matches[st.session_state.matches["Status"] != "Finished"].copy()
+        upcoming = upcoming.sort_values(["Date", "Match ID"]).reset_index(drop=True)
 
         if len(upcoming) == 0:
             st.success(t("all_finished", lang))

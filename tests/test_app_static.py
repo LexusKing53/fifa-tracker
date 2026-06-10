@@ -126,3 +126,7 @@ def test_language_switch_does_not_trigger_auto_sync():
     assert SOURCE.index('st.radio("Language / Idioma"') < SOURCE.index("# Auto-sync scores from API")
     assert "language_changed = previous_lang is not None and previous_lang != lang" in SOURCE
     assert "if not language_changed:" in SOURCE
+
+
+def test_prediction_game_orders_matches_by_date_then_match_id():
+    assert 'upcoming = upcoming.sort_values(["Date", "Match ID"]).reset_index(drop=True)' in SOURCE
