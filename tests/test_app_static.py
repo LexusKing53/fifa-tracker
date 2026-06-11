@@ -135,8 +135,10 @@ def test_prediction_game_orders_matches_by_date_then_match_id():
 def test_match_start_times_are_loaded_for_default_schedule():
     assert "MATCH_START_TIMES_ET = {" in SOURCE
     assert '"Time"' in SOURCE
-    assert '1: "3:00 PM ET"' in SOURCE
-    assert '72: "5:00 PM ET"' in SOURCE
+    assert '("2026-06-12", "Canada", "Bosnia and Herzegovina"): "3:00 PM ET"' in SOURCE
+    assert '("2026-06-24", "Czechia", "Mexico"): "9:00 PM ET"' in SOURCE
+    assert '("2026-06-27", "Croatia", "Ghana"): "5:00 PM ET"' in SOURCE
+    assert 'lambda r: default_match_time(r) or r["Time"]' in SOURCE
 
 
 def test_fixture_cards_show_start_time_with_soon_status():

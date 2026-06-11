@@ -284,24 +284,78 @@ div[data-testid="stMetricLabel"] { color: #8a9ab5 !important; font-size: 0.8rem 
 MATCH_FILE = Path("matches.csv")
 
 MATCH_START_TIMES_ET = {
-    1: "3:00 PM ET", 2: "10:00 PM ET", 3: "9:00 PM ET", 4: "12:00 PM ET",
-    5: "9:00 PM ET", 6: "9:00 PM ET", 7: "3:00 PM ET", 8: "3:00 PM ET",
-    9: "3:00 PM ET", 10: "6:00 PM ET", 11: "3:00 PM ET", 12: "3:00 PM ET",
-    13: "6:00 PM ET", 14: "9:00 PM ET", 15: "6:00 PM ET", 16: "8:30 PM ET",
-    17: "6:00 PM ET", 18: "6:00 PM ET", 19: "9:00 PM ET", 20: "12:00 AM ET",
-    21: "3:00 PM ET", 22: "11:00 PM ET", 23: "10:00 PM ET", 24: "10:00 PM ET",
-    25: "1:00 PM ET", 26: "7:00 PM ET", 27: "4:00 PM ET", 28: "8:00 PM ET",
-    29: "4:00 PM ET", 30: "4:00 PM ET", 31: "4:00 PM ET", 32: "10:00 PM ET",
-    33: "1:00 PM ET", 34: "12:00 AM ET", 35: "7:00 PM ET", 36: "7:00 PM ET",
-    37: "3:00 PM ET", 38: "9:00 PM ET", 39: "3:00 PM ET", 40: "9:00 PM ET",
-    41: "11:00 PM ET", 42: "11:00 PM ET", 43: "12:00 PM ET", 44: "6:00 PM ET",
-    45: "12:00 PM ET", 46: "6:00 PM ET", 47: "8:00 PM ET", 48: "8:00 PM ET",
-    49: "3:00 PM ET", 50: "6:00 PM ET", 51: "5:00 PM ET", 52: "8:00 PM ET",
-    53: "3:00 PM ET", 54: "3:00 PM ET", 55: "9:00 PM ET", 56: "12:00 AM ET",
-    57: "1:00 PM ET", 58: "11:00 PM ET", 59: "10:00 PM ET", 60: "10:00 PM ET",
-    61: "1:00 PM ET", 62: "10:00 PM ET", 63: "1:00 PM ET", 64: "10:00 PM ET",
-    65: "7:30 PM ET", 66: "7:30 PM ET", 67: "4:00 PM ET", 68: "7:00 PM ET",
-    69: "4:00 PM ET", 70: "7:00 PM ET", 71: "5:00 PM ET", 72: "5:00 PM ET",
+    ("2026-06-11", "Mexico", "South Africa"): "3:00 PM ET",
+    ("2026-06-11", "South Korea", "Czechia"): "10:00 PM ET",
+    ("2026-06-18", "Mexico", "South Korea"): "9:00 PM ET",
+    ("2026-06-18", "Czechia", "South Africa"): "12:00 PM ET",
+    ("2026-06-24", "South Africa", "South Korea"): "9:00 PM ET",
+    ("2026-06-24", "Czechia", "Mexico"): "9:00 PM ET",
+    ("2026-06-12", "Canada", "Bosnia and Herzegovina"): "3:00 PM ET",
+    ("2026-06-13", "Qatar", "Switzerland"): "3:00 PM ET",
+    ("2026-06-18", "Switzerland", "Bosnia and Herzegovina"): "3:00 PM ET",
+    ("2026-06-18", "Canada", "Qatar"): "6:00 PM ET",
+    ("2026-06-24", "Switzerland", "Canada"): "3:00 PM ET",
+    ("2026-06-24", "Bosnia and Herzegovina", "Qatar"): "3:00 PM ET",
+    ("2026-06-13", "Brazil", "Morocco"): "6:00 PM ET",
+    ("2026-06-13", "Haiti", "Scotland"): "9:00 PM ET",
+    ("2026-06-19", "Scotland", "Morocco"): "6:00 PM ET",
+    ("2026-06-19", "Brazil", "Haiti"): "9:00 PM ET",
+    ("2026-06-24", "Scotland", "Brazil"): "6:00 PM ET",
+    ("2026-06-24", "Morocco", "Haiti"): "6:00 PM ET",
+    ("2026-06-12", "United States", "Paraguay"): "9:00 PM ET",
+    ("2026-06-13", "Australia", "Turkey"): "12:00 AM ET",
+    ("2026-06-19", "United States", "Australia"): "3:00 PM ET",
+    ("2026-06-19", "Turkey", "Paraguay"): "11:00 PM ET",
+    ("2026-06-25", "Turkey", "United States"): "10:00 PM ET",
+    ("2026-06-25", "Paraguay", "Australia"): "10:00 PM ET",
+    ("2026-06-14", "Germany", "Curacao"): "1:00 PM ET",
+    ("2026-06-14", "Ivory Coast", "Ecuador"): "7:00 PM ET",
+    ("2026-06-20", "Germany", "Ivory Coast"): "4:00 PM ET",
+    ("2026-06-20", "Ecuador", "Curacao"): "8:00 PM ET",
+    ("2026-06-25", "Ecuador", "Germany"): "4:00 PM ET",
+    ("2026-06-25", "Curacao", "Ivory Coast"): "4:00 PM ET",
+    ("2026-06-14", "Netherlands", "Japan"): "4:00 PM ET",
+    ("2026-06-14", "Sweden", "Tunisia"): "10:00 PM ET",
+    ("2026-06-20", "Netherlands", "Sweden"): "1:00 PM ET",
+    ("2026-06-20", "Tunisia", "Japan"): "12:00 AM ET",
+    ("2026-06-25", "Japan", "Sweden"): "7:00 PM ET",
+    ("2026-06-25", "Tunisia", "Netherlands"): "7:00 PM ET",
+    ("2026-06-15", "Belgium", "Egypt"): "3:00 PM ET",
+    ("2026-06-15", "Iran", "New Zealand"): "9:00 PM ET",
+    ("2026-06-21", "Belgium", "Iran"): "3:00 PM ET",
+    ("2026-06-21", "New Zealand", "Egypt"): "9:00 PM ET",
+    ("2026-06-26", "Egypt", "Iran"): "11:00 PM ET",
+    ("2026-06-26", "New Zealand", "Belgium"): "11:00 PM ET",
+    ("2026-06-15", "Spain", "Cape Verde"): "12:00 PM ET",
+    ("2026-06-15", "Saudi Arabia", "Uruguay"): "6:00 PM ET",
+    ("2026-06-21", "Spain", "Saudi Arabia"): "12:00 PM ET",
+    ("2026-06-21", "Uruguay", "Cape Verde"): "6:00 PM ET",
+    ("2026-06-26", "Cape Verde", "Saudi Arabia"): "8:00 PM ET",
+    ("2026-06-26", "Uruguay", "Spain"): "8:00 PM ET",
+    ("2026-06-16", "France", "Senegal"): "3:00 PM ET",
+    ("2026-06-16", "Iraq", "Norway"): "6:00 PM ET",
+    ("2026-06-22", "France", "Iraq"): "5:00 PM ET",
+    ("2026-06-22", "Norway", "Senegal"): "8:00 PM ET",
+    ("2026-06-26", "Norway", "France"): "3:00 PM ET",
+    ("2026-06-26", "Senegal", "Iraq"): "3:00 PM ET",
+    ("2026-06-16", "Argentina", "Algeria"): "9:00 PM ET",
+    ("2026-06-16", "Austria", "Jordan"): "12:00 AM ET",
+    ("2026-06-22", "Argentina", "Austria"): "1:00 PM ET",
+    ("2026-06-22", "Jordan", "Algeria"): "11:00 PM ET",
+    ("2026-06-27", "Algeria", "Austria"): "10:00 PM ET",
+    ("2026-06-27", "Jordan", "Argentina"): "10:00 PM ET",
+    ("2026-06-17", "Portugal", "DR Congo"): "1:00 PM ET",
+    ("2026-06-17", "Uzbekistan", "Colombia"): "10:00 PM ET",
+    ("2026-06-23", "Portugal", "Uzbekistan"): "1:00 PM ET",
+    ("2026-06-23", "Colombia", "DR Congo"): "10:00 PM ET",
+    ("2026-06-27", "Colombia", "Portugal"): "7:30 PM ET",
+    ("2026-06-27", "DR Congo", "Uzbekistan"): "7:30 PM ET",
+    ("2026-06-17", "England", "Croatia"): "4:00 PM ET",
+    ("2026-06-17", "Ghana", "Panama"): "7:00 PM ET",
+    ("2026-06-23", "England", "Ghana"): "4:00 PM ET",
+    ("2026-06-23", "Panama", "Croatia"): "7:00 PM ET",
+    ("2026-06-27", "Panama", "England"): "5:00 PM ET",
+    ("2026-06-27", "Croatia", "Ghana"): "5:00 PM ET",
 }
 
 DEFAULT_MATCHES = pd.DataFrame([
@@ -399,21 +453,20 @@ def load_matches():
 def save_matches(df):
     df.to_csv(MATCH_FILE, index=False)
 
-def default_match_time(match_id):
-    try:
-        return MATCH_START_TIMES_ET.get(int(match_id), "")
-    except (TypeError, ValueError):
-        return ""
+def default_match_time(match_row):
+    key = (
+        str(match_row.get("Date", "")).strip(),
+        str(match_row.get("Team A", "")).strip(),
+        str(match_row.get("Team B", "")).strip(),
+    )
+    return MATCH_START_TIMES_ET.get(key, "")
 
 def ensure_columns(df):
     cols = ["Match ID", "Group", "Date", "Time", "Team A", "Team B", "Team A Score", "Team B Score", "Winner", "Loser", "Status", "Venue"]
     for c in cols:
         if c not in df.columns:
             df[c] = ""
-    df["Time"] = df.apply(
-        lambda r: r["Time"] or default_match_time(r["Match ID"]),
-        axis=1,
-    )
+    df["Time"] = df.apply(lambda r: default_match_time(r) or r["Time"], axis=1)
     return df[cols].fillna("")
 
 def format_match_datetime(match_row):
