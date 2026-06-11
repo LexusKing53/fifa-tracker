@@ -745,9 +745,10 @@ st.markdown("""
 <style>
 @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
 @keyframes trophyGlow { 0%,100%{filter:drop-shadow(0 0 6px #f7c94888)} 50%{filter:drop-shadow(0 0 18px #f7c948cc)} }
+.block-container { padding-top:1.25rem !important; }
 .spin-ball { display:inline-block; animation:spin 2s linear infinite; font-size:3.5rem; line-height:1; }
 .trophy-img { animation:trophyGlow 3s ease-in-out infinite; }
-.hero-shell { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.75rem; padding:0.5rem 0 0.75rem; text-align:center; }
+.hero-shell { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.6rem; padding:0.1rem 0 0.75rem; text-align:center; }
 .hero-title-wrap { display:flex; flex-direction:column; align-items:center; text-align:center; gap:0.45rem; min-width:0; }
 .hero-title-line { display:flex; align-items:center; justify-content:center; gap:1rem; }
 .hero-title { font-size:clamp(2rem, 5vw, 3.5rem); margin:0; color:#F7C948; font-family:Bebas Neue,sans-serif; letter-spacing:3px; white-space:normal; overflow-wrap:normal; }

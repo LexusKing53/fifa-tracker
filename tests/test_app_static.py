@@ -83,6 +83,11 @@ def test_trophy_is_centered_above_title_in_hero():
     assert ".hero-title-wrap { display:flex; flex-direction:column; align-items:center; text-align:center;" in SOURCE
 
 
+def test_hero_starts_near_top_of_page():
+    assert ".block-container { padding-top:1.25rem !important;" in SOURCE
+    assert ".hero-shell { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.6rem; padding:0.1rem 0 0.75rem;" in SOURCE
+
+
 def test_group_fixture_metric_is_not_labeled_as_total_upcoming():
     assert 'm3.metric(t("group_fixtures", lang), group_fixtures)' in SOURCE
 
