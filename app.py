@@ -3,6 +3,7 @@ import streamlit as st
 from pathlib import Path
 from datetime import datetime
 import requests
+from match_lock import is_match_locked
 from prediction_store import load_predictions, save_prediction
 from translations import LANGUAGES, t
 
@@ -674,13 +675,6 @@ def auto_sync_scores(matches_df):
     return updated, count
 
 # ── SESSION STATE ─────────────────────────────────────────────────────────────
-
-def is_match_locked(match_row):
-    try:
-        match_date = pd.to_datetime(match_row["Date"])
-        return match_date.date() <= datetime.now().date()
-    except Exception:
-        return False
 
 def score_predictions(predictions, matches):
     if len(predictions) == 0:
