@@ -4,6 +4,7 @@ from pathlib import Path
 
 
 APP = Path(__file__).resolve().parents[1] / "app.py"
+STREAMLIT_CONFIG = Path(__file__).resolve().parents[1] / ".streamlit" / "config.toml"
 SOURCE = APP.read_text(encoding="utf-8")
 
 
@@ -96,6 +97,12 @@ def test_streamlit_width_api_uses_current_parameter():
     assert "use_container_width" not in SOURCE
 
 
+def test_streamlit_toolbar_hides_developer_controls():
+    config = STREAMLIT_CONFIG.read_text(encoding="utf-8")
+    assert '[client]' in config
+    assert 'toolbarMode = "viewer"' in config
+
+
 def test_api_team_aliases_cover_common_name_variants():
     required_aliases = {
         '"Türkiye": "Turkey"',
@@ -163,3 +170,8 @@ def test_prediction_shared_views_refresh_from_store():
         SOURCE.index("# Refresh persisted predictions before shared views")
         < SOURCE.index("# ── LEADERBOARD")
     )
+
+
+def test_prediction_selectboxes_have_non_empty_accessible_labels():
+    assert 'st.selectbox("", options' not in SOURCE
+    assert 'pick_label = f"Pick winner for {match[\'Team A\']} vs {match[\'Team B\']}"' in SOURCE

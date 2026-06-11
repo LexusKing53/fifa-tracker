@@ -1338,7 +1338,8 @@ with tab7:
                     if already_picked and already_picked in options:
                         current_idx = options.index(already_picked)
 
-                    pick = st.selectbox("", options, index=current_idx,
+                    pick_label = f"Pick winner for {match['Team A']} vs {match['Team B']}"
+                    pick = st.selectbox(pick_label, options, index=current_idx,
                                        key=f"pred_{player}_{match_id}",
                                        label_visibility="collapsed")
 
