@@ -130,3 +130,21 @@ def test_language_switch_does_not_trigger_auto_sync():
 
 def test_prediction_game_orders_matches_by_date_then_match_id():
     assert 'upcoming = upcoming.sort_values(["Date", "Match ID"]).reset_index(drop=True)' in SOURCE
+
+
+def test_match_start_times_are_loaded_for_default_schedule():
+    assert "MATCH_START_TIMES_ET = {" in SOURCE
+    assert '"Time"' in SOURCE
+    assert '1: "3:00 PM ET"' in SOURCE
+    assert '72: "5:00 PM ET"' in SOURCE
+
+
+def test_fixture_cards_show_start_time_with_soon_status():
+    assert "format_match_datetime(row)" in SOURCE
+    assert "Soon · {match_time}" in SOURCE
+
+
+def test_prediction_views_show_start_time():
+    assert "format_match_datetime(match)" in SOURCE
+    assert 'my_preds["Kickoff"]' in SOURCE
+    assert 'match_labels["Kickoff"]' in SOURCE

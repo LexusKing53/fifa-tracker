@@ -283,6 +283,27 @@ div[data-testid="stMetricLabel"] { color: #8a9ab5 !important; font-size: 0.8rem 
 # ── MATCH FILE ───────────────────────────────────────────────────────────────
 MATCH_FILE = Path("matches.csv")
 
+MATCH_START_TIMES_ET = {
+    1: "3:00 PM ET", 2: "10:00 PM ET", 3: "9:00 PM ET", 4: "12:00 PM ET",
+    5: "9:00 PM ET", 6: "9:00 PM ET", 7: "3:00 PM ET", 8: "3:00 PM ET",
+    9: "3:00 PM ET", 10: "6:00 PM ET", 11: "3:00 PM ET", 12: "3:00 PM ET",
+    13: "6:00 PM ET", 14: "9:00 PM ET", 15: "6:00 PM ET", 16: "8:30 PM ET",
+    17: "6:00 PM ET", 18: "6:00 PM ET", 19: "9:00 PM ET", 20: "12:00 AM ET",
+    21: "3:00 PM ET", 22: "11:00 PM ET", 23: "10:00 PM ET", 24: "10:00 PM ET",
+    25: "1:00 PM ET", 26: "7:00 PM ET", 27: "4:00 PM ET", 28: "8:00 PM ET",
+    29: "4:00 PM ET", 30: "4:00 PM ET", 31: "4:00 PM ET", 32: "10:00 PM ET",
+    33: "1:00 PM ET", 34: "12:00 AM ET", 35: "7:00 PM ET", 36: "7:00 PM ET",
+    37: "3:00 PM ET", 38: "9:00 PM ET", 39: "3:00 PM ET", 40: "9:00 PM ET",
+    41: "11:00 PM ET", 42: "11:00 PM ET", 43: "12:00 PM ET", 44: "6:00 PM ET",
+    45: "12:00 PM ET", 46: "6:00 PM ET", 47: "8:00 PM ET", 48: "8:00 PM ET",
+    49: "3:00 PM ET", 50: "6:00 PM ET", 51: "5:00 PM ET", 52: "8:00 PM ET",
+    53: "3:00 PM ET", 54: "3:00 PM ET", 55: "9:00 PM ET", 56: "12:00 AM ET",
+    57: "1:00 PM ET", 58: "11:00 PM ET", 59: "10:00 PM ET", 60: "10:00 PM ET",
+    61: "1:00 PM ET", 62: "10:00 PM ET", 63: "1:00 PM ET", 64: "10:00 PM ET",
+    65: "7:30 PM ET", 66: "7:30 PM ET", 67: "4:00 PM ET", 68: "7:00 PM ET",
+    69: "4:00 PM ET", 70: "7:00 PM ET", 71: "5:00 PM ET", 72: "5:00 PM ET",
+}
+
 DEFAULT_MATCHES = pd.DataFrame([
     # ── GROUP A ──────────────────────────────────────────────────────────────
     {"Match ID": 1,  "Group": "A", "Date": "2026-06-11", "Team A": "Mexico",       "Team B": "South Africa", "Team A Score": "", "Team B Score": "", "Winner": "", "Loser": "", "Status": "Upcoming", "Venue": "Mexico City Stadium"},
@@ -378,12 +399,29 @@ def load_matches():
 def save_matches(df):
     df.to_csv(MATCH_FILE, index=False)
 
+def default_match_time(match_id):
+    try:
+        return MATCH_START_TIMES_ET.get(int(match_id), "")
+    except (TypeError, ValueError):
+        return ""
+
 def ensure_columns(df):
-    cols = ["Match ID", "Group", "Date", "Team A", "Team B", "Team A Score", "Team B Score", "Winner", "Loser", "Status", "Venue"]
+    cols = ["Match ID", "Group", "Date", "Time", "Team A", "Team B", "Team A Score", "Team B Score", "Winner", "Loser", "Status", "Venue"]
     for c in cols:
         if c not in df.columns:
             df[c] = ""
+    df["Time"] = df.apply(
+        lambda r: r["Time"] or default_match_time(r["Match ID"]),
+        axis=1,
+    )
     return df[cols].fillna("")
+
+def format_match_datetime(match_row):
+    date = str(match_row.get("Date", "")).strip()
+    time = str(match_row.get("Time", "")).strip()
+    if date and time:
+        return f"{date} · {time}"
+    return date or time or "TBD"
 
 def compute_match_outcome(row):
     try:
@@ -838,10 +876,11 @@ with tab1:
     fixture_cards_html = []
     for _, row in display_df.iterrows():
         grp_color = GROUP_COLORS.get(str(row["Group"]), "#748CF7")
+        match_time = format_match_datetime(row)
         status_html = (
             "<span class='status-live'>● LIVE</span>" if row["Status"] == "Live"
             else "<span class='status-finished'>✓ FT</span>" if row["Status"] == "Finished"
-            else "<span class='status-upcoming'>⏱ Soon</span>"
+            else f"<span class='status-upcoming'>⏱ Soon · {match_time}</span>"
         )
         sa = row["Team A Score"] if row["Team A Score"] != "" else "—"
         sb = row["Team B Score"] if row["Team B Score"] != "" else "—"
@@ -849,7 +888,7 @@ with tab1:
         <div class='match-card'>
             <div style='display:flex;align-items:center;gap:8px;min-width:180px'>
                 <span class='group-badge' style='background:{grp_color}22;color:{grp_color};border:1px solid {grp_color}44'>GRP {row["Group"]}</span>
-                <span style='color:#5a6a8a;font-size:0.8rem'>{row["Date"]}</span>
+                <span style='color:#5a6a8a;font-size:0.8rem'>{match_time}</span>
             </div>
             <div style='display:flex;align-items:center;gap:12px;flex:1;justify-content:center'>
                 <span class='team-name'>{flag(row["Team A"])} {row["Team A"]}</span>
@@ -874,6 +913,7 @@ with tab1:
             "Match ID": st.column_config.NumberColumn("ID", disabled=True),
             "Group": st.column_config.TextColumn("Grp"),
             "Date": st.column_config.TextColumn("Date"),
+            "Time": st.column_config.TextColumn("Time"),
             "Team A": st.column_config.TextColumn("Team A"),
             "Team B": st.column_config.TextColumn("Team B"),
             "Team A Score": st.column_config.TextColumn("Score A"),
@@ -1225,12 +1265,13 @@ with tab7:
                 already_picked = existing.iloc[0]["Predicted Winner"] if len(existing) > 0 else None
 
                 grp_color = GROUP_COLORS.get(str(match["Group"]), "#748CF7")
+                match_time = format_match_datetime(match)
                 lock_badge = "<span style='color:#FF6B6B;font-size:0.75rem'>🔒 Locked</span>" if locked else "<span style='color:#48D8A0;font-size:0.75rem'>🟢 Open</span>"
 
                 st.markdown(f"""
                 <div class='match-card' style='margin-bottom:0.3rem'>
                     <span class='group-badge' style='background:{grp_color}22;color:{grp_color};border:1px solid {grp_color}44'>GRP {match["Group"]}</span>
-                    <span style='color:#5a6a8a;font-size:0.8rem'>{match["Date"]}</span>
+                    <span style='color:#5a6a8a;font-size:0.8rem'>{match_time}</span>
                     <span style='font-weight:700'>{flag(match["Team A"])} {match["Team A"]} vs {match["Team B"]} {flag(match["Team B"])}</span>
                     {lock_badge}
                     {"<span style='color:#F7C948;font-size:0.8rem'>" + t("your_pick", lang) + ": " + already_picked + "</span>" if already_picked else ""}
@@ -1292,13 +1333,14 @@ with tab7:
             st.info(t("no_my_predictions", lang))
         else:
             my_preds = my_preds.merge(
-                st.session_state.matches[["Match ID", "Team A", "Team B", "Date", "Group"]],
+                st.session_state.matches[["Match ID", "Team A", "Team B", "Date", "Time", "Group"]],
                 on="Match ID", how="left"
             )
+            my_preds["Kickoff"] = my_preds.apply(format_match_datetime, axis=1)
             my_preds["Match"] = my_preds.apply(
                 lambda r: f"{flag(r['Team A'])} {r['Team A']} vs {r['Team B']} {flag(r['Team B'])}", axis=1
             )
-            display_preds = my_preds[["Date", "Group", "Match", "Predicted Winner", "Correct"]].rename(
+            display_preds = my_preds[["Kickoff", "Group", "Match", "Predicted Winner", "Correct"]].rename(
                 columns={"Predicted Winner": "Your Pick", "Correct": "Result"}
             )
             st.dataframe(display_preds, width="stretch", hide_index=True)
@@ -1311,12 +1353,13 @@ with tab7:
         else:
             all_players = sorted(all_preds["Player"].unique())
             # Build match labels
-            match_labels = st.session_state.matches[["Match ID", "Team A", "Team B", "Date", "Group"]].copy()
+            match_labels = st.session_state.matches[["Match ID", "Team A", "Team B", "Date", "Time", "Group"]].copy()
+            match_labels["Kickoff"] = match_labels.apply(format_match_datetime, axis=1)
             match_labels["Match"] = match_labels.apply(
                 lambda r: f"{flag(r['Team A'])} {r['Team A']} vs {r['Team B']} {flag(r['Team B'])}", axis=1
             )
             # Pivot: rows=matches, cols=players
-            grid = match_labels[["Match ID", "Date", "Group", "Match"]].copy()
+            grid = match_labels[["Match ID", "Date", "Kickoff", "Group", "Match"]].copy()
             for p in all_players:
                 p_preds = all_preds[all_preds["Player"] == p][["Match ID", "Predicted Winner", "Correct"]].copy()
                 p_preds.columns = ["Match ID", p, f"{p}_result"]
@@ -1329,5 +1372,7 @@ with tab7:
                 grid[p] = grid.apply(fmt, axis=1)
                 grid = grid.drop(columns=[f"{p}_result"])
 
-            display_grid = grid[["Date", "Group", "Match"] + all_players].sort_values("Date")
+            display_grid = (
+                grid.sort_values(["Date", "Match ID"])[["Kickoff", "Group", "Match"] + all_players]
+            )
             st.dataframe(display_grid, width="stretch", hide_index=True)
