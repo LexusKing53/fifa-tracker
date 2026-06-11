@@ -175,3 +175,8 @@ def test_prediction_shared_views_refresh_from_store():
 def test_prediction_selectboxes_have_non_empty_accessible_labels():
     assert 'st.selectbox("", options' not in SOURCE
     assert 'pick_label = f"Pick winner for {match[\'Team A\']} vs {match[\'Team B\']}"' in SOURCE
+
+
+def test_auto_sync_writes_scores_as_strings():
+    assert 'updated.at[idx, "Team A Score"] = str(home_score)' in SOURCE
+    assert 'updated.at[idx, "Team B Score"] = str(away_score)' in SOURCE

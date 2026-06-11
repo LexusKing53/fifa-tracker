@@ -662,8 +662,8 @@ def auto_sync_scores(matches_df):
 
         # Only update if score changed
         if str(row["Team A Score"]) != str(home_score) or str(row["Team B Score"]) != str(away_score):
-            updated.at[idx, "Team A Score"] = home_score
-            updated.at[idx, "Team B Score"] = away_score
+            updated.at[idx, "Team A Score"] = str(home_score)
+            updated.at[idx, "Team B Score"] = str(away_score)
             if status == "FINISHED":
                 updated.at[idx, "Status"] = "Finished"
             count += 1
