@@ -14,6 +14,13 @@ def test_same_day_match_is_open_before_eastern_kickoff():
     assert is_match_locked(match, now=now) is False
 
 
+def test_force_unlocked_match_stays_open_after_kickoff():
+    match = {"Match ID": 1, "Date": "2026-06-11", "Time": "3:00 PM ET"}
+    now = datetime(2026, 6, 11, 16, 30, tzinfo=EASTERN)
+
+    assert is_match_locked(match, now=now) is False
+
+
 def test_same_day_match_locks_at_eastern_kickoff():
     match = {"Date": "2026-06-11", "Time": "3:00 PM ET"}
     now = datetime(2026, 6, 11, 15, 0, tzinfo=EASTERN)

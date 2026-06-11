@@ -3,6 +3,7 @@ from zoneinfo import ZoneInfo
 
 
 EASTERN_TIME = ZoneInfo("America/New_York")
+FORCE_UNLOCK_MATCH_IDS = {1}  # TEMP: force-unlock Mexico vs South Africa for Ralph's pick
 
 
 def _get(row, key, default=""):
@@ -24,6 +25,12 @@ def match_kickoff_at(match_row):
 
 
 def is_match_locked(match_row, now=None):
+    try:
+        if int(_get(match_row, "Match ID", -1)) in FORCE_UNLOCK_MATCH_IDS:
+            return False
+    except (TypeError, ValueError):
+        pass
+
     kickoff = match_kickoff_at(match_row)
     if kickoff is None:
         try:
