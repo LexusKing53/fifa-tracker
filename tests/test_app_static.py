@@ -172,6 +172,15 @@ def test_prediction_shared_views_refresh_from_store():
     )
 
 
+def test_ralph_mexico_pick_is_repaired_before_predictions_load():
+    assert 'REQUIRED_PREDICTIONS = [("Ralph", 1, "Mexico")]' in SOURCE
+    assert "ensure_predictions(REQUIRED_PREDICTIONS)" in SOURCE
+    assert (
+        SOURCE.index("ensure_predictions(REQUIRED_PREDICTIONS)")
+        < SOURCE.index("st.session_state.predictions = load_predictions()")
+    )
+
+
 def test_prediction_selectboxes_have_non_empty_accessible_labels():
     assert 'st.selectbox("", options' not in SOURCE
     assert 'pick_label = f"Pick winner for {match[\'Team A\']} vs {match[\'Team B\']}"' in SOURCE

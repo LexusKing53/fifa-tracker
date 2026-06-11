@@ -4,7 +4,7 @@ from pathlib import Path
 from datetime import datetime
 import requests
 from match_lock import is_match_locked
-from prediction_store import load_predictions, save_prediction
+from prediction_store import ensure_predictions, load_predictions, save_prediction
 from translations import LANGUAGES, t
 
 try:
@@ -25,6 +25,7 @@ API_KEY = get_secret("FOOTBALL_API_KEY")
 API_BASE = "https://api.football-data.org/v4"
 HEADERS = {"X-Auth-Token": API_KEY}
 WC2026_ID = 2000  # FIFA World Cup competition ID
+REQUIRED_PREDICTIONS = [("Ralph", 1, "Mexico")]
 
 # ── FLAGS ────────────────────────────────────────────────────────────────────
 FLAGS = {
@@ -704,6 +705,8 @@ def get_leaderboard(predictions):
     lb["Points"] = lb["Correct"] * 3
     lb["Accuracy"] = (lb["Correct"] / lb["Predicted"] * 100).round(1).astype(str) + "%"
     return lb.sort_values("Points", ascending=False).reset_index(drop=True)
+
+ensure_predictions(REQUIRED_PREDICTIONS)
 
 if "predictions" not in st.session_state:
     st.session_state.predictions = load_predictions()

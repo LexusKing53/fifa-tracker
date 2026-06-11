@@ -1,5 +1,6 @@
 import pandas as pd
 
+import prediction_store
 from prediction_store import load_predictions, save_prediction, save_predictions
 
 
@@ -55,5 +56,22 @@ def test_save_predictions_replaces_store_contents(tmp_path):
             "Match ID": 8,
             "Predicted Winner": "Spain",
             "Correct": "✅",
+        }
+    ]
+
+
+def test_ensure_predictions_repairs_required_pick(tmp_path):
+    db_path = tmp_path / "predictions.sqlite3"
+
+    assert hasattr(prediction_store, "ensure_predictions")
+    prediction_store.ensure_predictions([("Ralph", 1, "Mexico")], db_path=db_path)
+
+    loaded = load_predictions(db_path=db_path)
+    assert loaded.to_dict("records") == [
+        {
+            "Player": "Ralph",
+            "Match ID": 1,
+            "Predicted Winner": "Mexico",
+            "Correct": "",
         }
     ]

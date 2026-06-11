@@ -55,6 +55,17 @@ def save_prediction(player, match_id, predicted_winner, correct="", db_path=DEFA
         )
 
 
+def ensure_predictions(required_predictions, db_path=DEFAULT_DB_PATH):
+    existing = load_predictions(db_path)
+    for player, match_id, predicted_winner in required_predictions:
+        stored = existing[
+            (existing["Player"] == str(player))
+            & (existing["Match ID"] == int(match_id))
+        ]
+        if len(stored) == 0 or stored.iloc[0]["Predicted Winner"] != str(predicted_winner):
+            save_prediction(player, match_id, predicted_winner, db_path=db_path)
+
+
 def save_predictions(df, db_path=DEFAULT_DB_PATH):
     with _connect(db_path) as conn:
         conn.execute("DELETE FROM predictions")
