@@ -1359,6 +1359,10 @@ with tab7:
                         )
                         made_any = True
 
+        # Refresh persisted predictions before shared views so other players appear.
+        st.session_state.predictions = load_predictions()
+        st.session_state.predictions = score_predictions(st.session_state.predictions, st.session_state.matches)
+
         # ── LEADERBOARD ───────────────────────────────────────────────────────
         st.markdown(t("leaderboard", lang))
         lb = get_leaderboard(st.session_state.predictions)

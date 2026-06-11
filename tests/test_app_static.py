@@ -155,3 +155,11 @@ def test_prediction_views_show_start_time():
     assert "format_match_datetime(match)" in SOURCE
     assert 'my_preds["Kickoff"]' in SOURCE
     assert 'match_labels["Kickoff"]' in SOURCE
+
+
+def test_prediction_shared_views_refresh_from_store():
+    assert "# Refresh persisted predictions before shared views" in SOURCE
+    assert (
+        SOURCE.index("# Refresh persisted predictions before shared views")
+        < SOURCE.index("# ── LEADERBOARD")
+    )
