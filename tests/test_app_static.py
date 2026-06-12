@@ -140,8 +140,21 @@ def test_language_switch_does_not_trigger_auto_sync():
     assert "if not language_changed:" in SOURCE
 
 
-def test_prediction_game_orders_matches_by_date_then_match_id():
-    assert 'upcoming = upcoming.sort_values(["Date", "Match ID"]).reset_index(drop=True)' in SOURCE
+def test_fixture_cards_order_by_kickoff_datetime():
+    assert "from fixture_utils import sort_matches_by_kickoff, today_et, todays_matches_for_display" in SOURCE
+    assert "display_df = sort_matches_by_kickoff(display_df)" in SOURCE
+
+
+def test_live_api_today_matches_include_schedule_fallbacks():
+    assert "today = today_et()" in SOURCE
+    assert "today_matches = todays_matches_for_display(" in SOURCE
+    assert "normalize_team_name=normalize_team_name" in SOURCE
+
+
+def test_prediction_game_orders_matches_by_kickoff_datetime():
+    assert "upcoming = sort_matches_by_kickoff(upcoming)" in SOURCE
+    assert "match_labels = sort_matches_by_kickoff(match_labels)" in SOURCE
+    assert 'grid.sort_values(["Date", "Match ID"])' not in SOURCE
 
 
 def test_match_start_times_are_loaded_for_default_schedule():

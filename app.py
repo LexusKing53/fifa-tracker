@@ -3,6 +3,7 @@ import streamlit as st
 from pathlib import Path
 from datetime import datetime
 import requests
+from fixture_utils import sort_matches_by_kickoff, today_et, todays_matches_for_display
 from match_lock import is_match_locked
 from prediction_store import ensure_predictions, load_predictions, save_prediction
 from translations import LANGUAGES, t
@@ -574,7 +575,7 @@ def fetch_todays_matches():
     if not API_KEY:
         return []
     try:
-        today = datetime.now().strftime("%Y-%m-%d")
+        today = today_et()
         r = requests.get(f"{API_BASE}/competitions/WC/matches?dateFrom={today}&dateTo={today}", headers=HEADERS, timeout=5)
         if r.status_code == 200:
             return r.json().get("matches", [])
@@ -923,6 +924,7 @@ with tab1:
     if sel_group != t("all_groups", lang):
         g_letter = sel_group.replace("Group ", "")
         display_df = display_df[display_df["Group"] == g_letter]
+    display_df = sort_matches_by_kickoff(display_df)
 
     fixture_cards_html = []
     for _, row in display_df.iterrows():
@@ -1177,7 +1179,11 @@ with tab5:
         st.cache_data.clear()
         st.rerun()
 
-    today_matches = fetch_todays_matches()
+    today_matches = todays_matches_for_display(
+        fetch_todays_matches(),
+        st.session_state.matches,
+        normalize_team_name=normalize_team_name,
+    )
     if today_matches:
         st.markdown(t("todays_matches", lang))
         for m in today_matches:
@@ -1298,7 +1304,7 @@ with tab7:
         # ── UPCOMING MATCHES TO PREDICT ───────────────────────────────────────
         st.markdown(t("pick_winners", lang))
         upcoming = st.session_state.matches[st.session_state.matches["Status"] != "Finished"].copy()
-        upcoming = upcoming.sort_values(["Date", "Match ID"]).reset_index(drop=True)
+        upcoming = sort_matches_by_kickoff(upcoming)
 
         if len(upcoming) == 0:
             st.success(t("all_finished", lang))
@@ -1410,6 +1416,7 @@ with tab7:
             all_players = sorted(all_preds["Player"].unique())
             # Build match labels
             match_labels = st.session_state.matches[["Match ID", "Team A", "Team B", "Date", "Time", "Group"]].copy()
+            match_labels = sort_matches_by_kickoff(match_labels)
             match_labels["Kickoff"] = match_labels.apply(format_match_datetime, axis=1)
             match_labels["Match"] = match_labels.apply(
                 lambda r: f"{flag(r['Team A'])} {r['Team A']} vs {r['Team B']} {flag(r['Team B'])}", axis=1
@@ -1428,7 +1435,5 @@ with tab7:
                 grid[p] = grid.apply(fmt, axis=1)
                 grid = grid.drop(columns=[f"{p}_result"])
 
-            display_grid = (
-                grid.sort_values(["Date", "Match ID"])[["Kickoff", "Group", "Match"] + all_players]
-            )
+            display_grid = grid[["Kickoff", "Group", "Match"] + all_players]
             st.dataframe(display_grid, width="stretch", hide_index=True)
