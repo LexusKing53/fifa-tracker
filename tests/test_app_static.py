@@ -134,6 +134,28 @@ def test_fixture_cards_are_batched_for_fast_language_switching():
     assert 'st.markdown("\\n".join(fixture_cards_html), unsafe_allow_html=True)' in SOURCE
 
 
+def test_dashboard_metrics_are_centered():
+    assert 'div[data-testid="stMetric"] { text-align: center !important;' in SOURCE
+    assert 'div[data-testid="stMetricLabel"] { justify-content: center !important;' in SOURCE
+    assert 'div[data-testid="stMetricDelta"] { justify-content: center !important;' in SOURCE
+
+
+def test_standings_tables_explain_abbreviations():
+    assert "STANDINGS_LEGEND_HTML" in SOURCE
+    assert "<strong>P</strong> = Played" in SOURCE
+    assert "<strong>GD</strong> = Goal Difference" in SOURCE
+    assert 'st.markdown(STANDINGS_LEGEND_HTML, unsafe_allow_html=True)' in SOURCE
+
+
+def test_dataframes_use_centered_style_helper():
+    assert "def center_dataframe(" in SOURCE
+    assert '.set_properties(**{"text-align": "center"})' in SOURCE
+    assert '.set_table_styles([{"selector": "th", "props": [("text-align", "center")]}])' in SOURCE
+    assert "st.dataframe(grp_df, width=\"stretch\")" not in SOURCE
+    assert "st.dataframe(center_dataframe(grp_df), width=\"stretch\")" in SOURCE
+    assert "st.dataframe(center_dataframe(pd.DataFrame(rows)), width=\"stretch\", hide_index=True)" in SOURCE
+
+
 def test_language_switch_does_not_trigger_auto_sync():
     assert SOURCE.index('st.radio("Language / Idioma"') < SOURCE.index("# Auto-sync scores from API")
     assert "language_changed = previous_lang is not None and previous_lang != lang" in SOURCE

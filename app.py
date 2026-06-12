@@ -139,6 +139,14 @@ KEY_PLAYERS = {
 def flag(team):
     return FLAGS.get(normalize_team_name(team), "🏳️")
 
+
+def center_dataframe(df):
+    return (
+        df.style
+        .set_properties(**{"text-align": "center"})
+        .set_table_styles([{"selector": "th", "props": [("text-align", "center")]}])
+    )
+
 # ── GROUP COLORS ─────────────────────────────────────────────────────────────
 GROUP_COLORS = {
     "A": "#FF6B6B", "B": "#FF9F43", "C": "#F7C948",
@@ -146,6 +154,19 @@ GROUP_COLORS = {
     "G": "#C874F7", "H": "#F774C8", "I": "#74F7E8", "J": "#F79F74",
     "K": "#A8F774", "L": "#F77474",
 }
+
+STANDINGS_LEGEND_HTML = """
+<div class='standings-legend'>
+    <span><strong>P</strong> = Played</span>
+    <span><strong>W</strong> = Wins</span>
+    <span><strong>D</strong> = Draws</span>
+    <span><strong>L</strong> = Losses</span>
+    <span><strong>GF</strong> = Goals For</span>
+    <span><strong>GA</strong> = Goals Against</span>
+    <span><strong>GD</strong> = Goal Difference</span>
+    <span><strong>Pts</strong> = Points</span>
+</div>
+"""
 
 # ── CUSTOM CSS ───────────────────────────────────────────────────────────────
 st.markdown("""
@@ -258,9 +279,24 @@ h1, h2, h3 { font-family: 'Bebas Neue', sans-serif !important; letter-spacing: 2
 .stTabs [data-baseweb="tab"] { color: #8a9ab5 !important; font-family: 'Bebas Neue', sans-serif !important; font-size: 1rem !important; letter-spacing: 1px; }
 .stTabs [aria-selected="true"] { background: linear-gradient(90deg, #F7C948, #FF9F43) !important; color: #0a0e1a !important; border-radius: 7px !important; }
 
-.stDataFrame { border-radius: 10px; overflow: hidden; }
-div[data-testid="stMetricValue"] { font-family: 'Bebas Neue', sans-serif !important; font-size: 2.2rem !important; color: #F7C948 !important; }
-div[data-testid="stMetricLabel"] { color: #8a9ab5 !important; font-size: 0.8rem !important; text-transform: uppercase; letter-spacing: 1px; }
+.stDataFrame { border-radius: 10px; overflow: hidden; text-align: center; }
+.stDataFrame [role="gridcell"], .stDataFrame [role="columnheader"] { justify-content: center !important; text-align: center !important; }
+div[data-testid="stMetric"] { text-align: center !important; }
+div[data-testid="stMetric"] label { justify-content: center !important; }
+div[data-testid="stMetricValue"] { font-family: 'Bebas Neue', sans-serif !important; font-size: 2.2rem !important; color: #F7C948 !important; text-align: center !important; }
+div[data-testid="stMetricLabel"] { justify-content: center !important; color: #8a9ab5 !important; font-size: 0.8rem !important; text-transform: uppercase; letter-spacing: 1px; text-align: center !important; }
+div[data-testid="stMetricDelta"] { justify-content: center !important; text-align: center !important; }
+.standings-legend {
+    display:flex;
+    flex-wrap:wrap;
+    justify-content:center;
+    gap:0.45rem 1rem;
+    color:#8a9ab5;
+    font-size:0.85rem;
+    text-align:center;
+    margin:0.25rem 0 1rem;
+}
+.standings-legend strong { color:#F7C948; }
 
 .bracket-match {
     background: linear-gradient(135deg, #141928, #1a2235);
@@ -279,6 +315,7 @@ div[data-testid="stMetricLabel"] { color: #8a9ab5 !important; font-size: 0.8rem 
     border-bottom: 2px solid #F7C948;
     padding-bottom: 0.3rem;
     margin: 1.5rem 0 1rem 0;
+    text-align: center;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -993,6 +1030,7 @@ with tab1:
 # ════════════════════════════════════════════════════════════════════════════════
 with tab2:
     st.markdown(f"<div class='section-title'>{t('group_standings', lang)}</div>", unsafe_allow_html=True)
+    st.markdown(STANDINGS_LEGEND_HTML, unsafe_allow_html=True)
     if len(standings) == 0:
         st.info(t("enter_scores", lang))
     else:
@@ -1004,8 +1042,8 @@ with tab2:
             grp_df = grp_df[["Team", "P", "W", "D", "L", "GF", "GA", "GD", "Pts"]].reset_index(drop=True)
             grp_df.index = grp_df.index + 1
 
-            st.markdown(f"<h3 style='color:{grp_color};font-family:Bebas Neue,sans-serif;letter-spacing:2px'>GROUP {grp}</h3>", unsafe_allow_html=True)
-            st.dataframe(grp_df, width="stretch")
+            st.markdown(f"<h3 style='color:{grp_color};font-family:Bebas Neue,sans-serif;letter-spacing:2px;text-align:center'>GROUP {grp}</h3>", unsafe_allow_html=True)
+            st.dataframe(center_dataframe(grp_df), width="stretch")
             st.markdown("<br>", unsafe_allow_html=True)
 
 # ════════════════════════════════════════════════════════════════════════════════
@@ -1167,7 +1205,7 @@ with tab4:
         top_teams["Team"] = top_teams.apply(lambda r: f"{r['Flag']} {r['Team']}", axis=1)
         top_teams = top_teams.drop("Flag", axis=1).reset_index(drop=True)
         top_teams.index = top_teams.index + 1
-        st.dataframe(top_teams, width="stretch")
+        st.dataframe(center_dataframe(top_teams), width="stretch")
     else:
         st.info("Team performance stats will populate as matches are played.")
 
@@ -1208,8 +1246,9 @@ with tab5:
     api_standings = fetch_standings_api()
     if api_standings:
         st.markdown(t("live_standings", lang))
+        st.markdown(STANDINGS_LEGEND_HTML, unsafe_allow_html=True)
         for s in api_standings:
-            st.markdown(f"**{s.get('group', 'Group')}**")
+            st.markdown(f"<h3 style='text-align:center'>{s.get('group', 'Group')}</h3>", unsafe_allow_html=True)
             rows = []
             for entry in s.get("table", []):
                 team = entry["team"]["name"]
@@ -1221,7 +1260,7 @@ with tab5:
                     "GF": entry["goalsFor"], "GA": entry["goalsAgainst"],
                     "GD": entry["goalDifference"], "Pts": entry["points"]
                 })
-            st.dataframe(pd.DataFrame(rows), width="stretch", hide_index=True)
+            st.dataframe(center_dataframe(pd.DataFrame(rows)), width="stretch", hide_index=True)
 
 # ════════════════════════════════════════════════════════════════════════════════
 with tab6:
@@ -1405,7 +1444,7 @@ with tab7:
             display_preds = my_preds[["Kickoff", "Group", "Match", "Predicted Winner", "Correct"]].rename(
                 columns={"Predicted Winner": "Your Pick", "Correct": "Result"}
             )
-            st.dataframe(display_preds, width="stretch", hide_index=True)
+            st.dataframe(center_dataframe(display_preds), width="stretch", hide_index=True)
 
         # ── ALL PLAYERS PREDICTIONS GRID ──────────────────────────────────────
         st.markdown(t("everyone_picks", lang))
@@ -1436,4 +1475,4 @@ with tab7:
                 grid = grid.drop(columns=[f"{p}_result"])
 
             display_grid = grid[["Kickoff", "Group", "Match"] + all_players]
-            st.dataframe(display_grid, width="stretch", hide_index=True)
+            st.dataframe(center_dataframe(display_grid), width="stretch", hide_index=True)
