@@ -2,6 +2,7 @@ import pandas as pd
 import streamlit as st
 from pathlib import Path
 from datetime import datetime
+import html
 import requests
 from fixture_utils import sort_matches_by_kickoff, today_et, todays_matches_for_display
 from match_lock import is_match_locked
@@ -140,12 +141,42 @@ def flag(team):
     return FLAGS.get(normalize_team_name(team), "🏳️")
 
 
-def center_dataframe(df):
-    return (
-        df.style
-        .set_properties(**{"text-align": "center"})
-        .set_table_styles([{"selector": "th", "props": [("text-align", "center")]}])
-    )
+def _html_cell(value):
+    return html.escape(str(value))
+
+
+def render_metric_card(label, value, delta=""):
+    delta_html = f"<div class='dashboard-metric-delta'>{_html_cell(delta)}</div>" if delta else ""
+    return f"""
+    <div class='dashboard-metric'>
+        <div class='dashboard-metric-label'>{_html_cell(label)}</div>
+        <div class='dashboard-metric-value'>{_html_cell(value)}</div>
+        {delta_html}
+    </div>
+    """
+
+
+def render_centered_table(df, hide_index=False):
+    columns = list(df.columns)
+    headers = columns if hide_index else [""] + columns
+    header_html = "".join(f"<th>{_html_cell(header)}</th>" for header in headers)
+    row_html = []
+
+    for index, row in df.iterrows():
+        cells = []
+        if not hide_index:
+            cells.append(f"<td>{_html_cell(index)}</td>")
+        cells.extend(f"<td>{_html_cell(row[column])}</td>" for column in columns)
+        row_html.append(f"<tr>{''.join(cells)}</tr>")
+
+    return f"""
+    <div class='centered-table-wrap'>
+        <table class='centered-table'>
+            <thead><tr>{header_html}</tr></thead>
+            <tbody>{''.join(row_html)}</tbody>
+        </table>
+    </div>
+    """
 
 # ── GROUP COLORS ─────────────────────────────────────────────────────────────
 GROUP_COLORS = {
@@ -279,13 +310,53 @@ h1, h2, h3 { font-family: 'Bebas Neue', sans-serif !important; letter-spacing: 2
 .stTabs [data-baseweb="tab"] { color: #8a9ab5 !important; font-family: 'Bebas Neue', sans-serif !important; font-size: 1rem !important; letter-spacing: 1px; }
 .stTabs [aria-selected="true"] { background: linear-gradient(90deg, #F7C948, #FF9F43) !important; color: #0a0e1a !important; border-radius: 7px !important; }
 
-.stDataFrame { border-radius: 10px; overflow: hidden; text-align: center; }
-.stDataFrame [role="gridcell"], .stDataFrame [role="columnheader"] { justify-content: center !important; text-align: center !important; }
-div[data-testid="stMetric"] { text-align: center !important; }
-div[data-testid="stMetric"] label { justify-content: center !important; }
-div[data-testid="stMetricValue"] { font-family: 'Bebas Neue', sans-serif !important; font-size: 2.2rem !important; color: #F7C948 !important; text-align: center !important; }
-div[data-testid="stMetricLabel"] { justify-content: center !important; color: #8a9ab5 !important; font-size: 0.8rem !important; text-transform: uppercase; letter-spacing: 1px; text-align: center !important; }
-div[data-testid="stMetricDelta"] { justify-content: center !important; text-align: center !important; }
+.dashboard-metric { text-align:center; width:100%; padding:0.35rem 0; }
+.dashboard-metric-label {
+    color:#8a9ab5;
+    font-size:0.8rem;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:1px;
+}
+.dashboard-metric-value {
+    font-family:'Bebas Neue', sans-serif !important;
+    font-size:2.35rem;
+    line-height:1.05;
+    color:#F7C948;
+    text-align:center;
+}
+.dashboard-metric-delta {
+    color:#8a9ab5;
+    font-size:0.8rem;
+    text-align:center;
+}
+.centered-table-wrap {
+    width:100%;
+    overflow-x:auto;
+    border:1px solid #252d45;
+    border-radius:10px;
+    background:#101520;
+}
+.centered-table {
+    width:100%;
+    border-collapse:collapse;
+    table-layout:auto;
+}
+.centered-table th, .centered-table td {
+    text-align:center;
+    vertical-align:middle;
+    padding:0.75rem 0.8rem;
+    border-bottom:1px solid #252d45;
+    border-right:1px solid #252d45;
+    color:#e8eaf0;
+}
+.centered-table th {
+    color:#8a9ab5;
+    font-weight:700;
+    background:#1a1d26;
+}
+.centered-table th:last-child, .centered-table td:last-child { border-right:none; }
+.centered-table tr:last-child td { border-bottom:none; }
 .standings-legend {
     display:flex;
     flex-wrap:wrap;
@@ -932,10 +1003,14 @@ total = len(st.session_state.matches)
 finished = int((st.session_state.matches["Status"] == "Finished").sum())
 group_fixtures = len(st.session_state.matches)
 groups = st.session_state.matches["Group"].nunique()
-m1.metric(t("total_matches", lang), "104", "72 Group + 32 Knockout")
-m2.metric(t("finished", lang), finished)
-m3.metric(t("group_fixtures", lang), group_fixtures)
-m4.metric(t("groups", lang), groups)
+with m1:
+    st.markdown(render_metric_card(t("total_matches", lang), "104", "72 Group + 32 Knockout"), unsafe_allow_html=True)
+with m2:
+    st.markdown(render_metric_card(t("finished", lang), finished), unsafe_allow_html=True)
+with m3:
+    st.markdown(render_metric_card(t("group_fixtures", lang), group_fixtures), unsafe_allow_html=True)
+with m4:
+    st.markdown(render_metric_card(t("groups", lang), groups), unsafe_allow_html=True)
 
 st.markdown("---")
 
@@ -1043,7 +1118,7 @@ with tab2:
             grp_df.index = grp_df.index + 1
 
             st.markdown(f"<h3 style='color:{grp_color};font-family:Bebas Neue,sans-serif;letter-spacing:2px;text-align:center'>GROUP {grp}</h3>", unsafe_allow_html=True)
-            st.dataframe(center_dataframe(grp_df), width="stretch")
+            st.markdown(render_centered_table(grp_df), unsafe_allow_html=True)
             st.markdown("<br>", unsafe_allow_html=True)
 
 # ════════════════════════════════════════════════════════════════════════════════
@@ -1205,7 +1280,7 @@ with tab4:
         top_teams["Team"] = top_teams.apply(lambda r: f"{r['Flag']} {r['Team']}", axis=1)
         top_teams = top_teams.drop("Flag", axis=1).reset_index(drop=True)
         top_teams.index = top_teams.index + 1
-        st.dataframe(center_dataframe(top_teams), width="stretch")
+        st.markdown(render_centered_table(top_teams), unsafe_allow_html=True)
     else:
         st.info("Team performance stats will populate as matches are played.")
 
@@ -1260,7 +1335,7 @@ with tab5:
                     "GF": entry["goalsFor"], "GA": entry["goalsAgainst"],
                     "GD": entry["goalDifference"], "Pts": entry["points"]
                 })
-            st.dataframe(center_dataframe(pd.DataFrame(rows)), width="stretch", hide_index=True)
+            st.markdown(render_centered_table(pd.DataFrame(rows), hide_index=True), unsafe_allow_html=True)
 
 # ════════════════════════════════════════════════════════════════════════════════
 with tab6:
@@ -1444,7 +1519,7 @@ with tab7:
             display_preds = my_preds[["Kickoff", "Group", "Match", "Predicted Winner", "Correct"]].rename(
                 columns={"Predicted Winner": "Your Pick", "Correct": "Result"}
             )
-            st.dataframe(center_dataframe(display_preds), width="stretch", hide_index=True)
+            st.markdown(render_centered_table(display_preds, hide_index=True), unsafe_allow_html=True)
 
         # ── ALL PLAYERS PREDICTIONS GRID ──────────────────────────────────────
         st.markdown(t("everyone_picks", lang))
@@ -1475,4 +1550,4 @@ with tab7:
                 grid = grid.drop(columns=[f"{p}_result"])
 
             display_grid = grid[["Kickoff", "Group", "Match"] + all_players]
-            st.dataframe(center_dataframe(display_grid), width="stretch", hide_index=True)
+            st.markdown(render_centered_table(display_grid, hide_index=True), unsafe_allow_html=True)

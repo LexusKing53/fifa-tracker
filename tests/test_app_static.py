@@ -90,7 +90,7 @@ def test_hero_starts_near_top_of_page():
 
 
 def test_group_fixture_metric_is_not_labeled_as_total_upcoming():
-    assert 'm3.metric(t("group_fixtures", lang), group_fixtures)' in SOURCE
+    assert 'render_metric_card(t("group_fixtures", lang), group_fixtures)' in SOURCE
 
 
 def test_streamlit_width_api_uses_current_parameter():
@@ -135,9 +135,10 @@ def test_fixture_cards_are_batched_for_fast_language_switching():
 
 
 def test_dashboard_metrics_are_centered():
-    assert 'div[data-testid="stMetric"] { text-align: center !important;' in SOURCE
-    assert 'div[data-testid="stMetricLabel"] { justify-content: center !important;' in SOURCE
-    assert 'div[data-testid="stMetricDelta"] { justify-content: center !important;' in SOURCE
+    assert "def render_metric_card(" in SOURCE
+    assert "dashboard-metric-value" in SOURCE
+    assert "m1.metric(" not in SOURCE
+    assert ".dashboard-metric { text-align:center;" in SOURCE
 
 
 def test_standings_tables_explain_abbreviations():
@@ -147,13 +148,13 @@ def test_standings_tables_explain_abbreviations():
     assert 'st.markdown(STANDINGS_LEGEND_HTML, unsafe_allow_html=True)' in SOURCE
 
 
-def test_dataframes_use_centered_style_helper():
-    assert "def center_dataframe(" in SOURCE
-    assert '.set_properties(**{"text-align": "center"})' in SOURCE
-    assert '.set_table_styles([{"selector": "th", "props": [("text-align", "center")]}])' in SOURCE
-    assert "st.dataframe(grp_df, width=\"stretch\")" not in SOURCE
-    assert "st.dataframe(center_dataframe(grp_df), width=\"stretch\")" in SOURCE
-    assert "st.dataframe(center_dataframe(pd.DataFrame(rows)), width=\"stretch\", hide_index=True)" in SOURCE
+def test_read_only_tables_render_centered_html_cells():
+    assert "def render_centered_table(" in SOURCE
+    assert ".centered-table th, .centered-table td {" in SOURCE
+    assert "text-align:center;" in SOURCE
+    assert "st.dataframe(" not in SOURCE
+    assert "render_centered_table(grp_df)" in SOURCE
+    assert "render_centered_table(pd.DataFrame(rows), hide_index=True)" in SOURCE
 
 
 def test_language_switch_does_not_trigger_auto_sync():
