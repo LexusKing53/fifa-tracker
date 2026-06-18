@@ -6,6 +6,7 @@ import html
 import requests
 from fixture_utils import sort_matches_by_kickoff, today_et, todays_matches_for_display
 from match_lock import is_match_locked
+from match_results import apply_known_final_results, build_standings, compute_match_outcome
 from prediction_store import ensure_predictions, load_predictions, save_prediction
 from translations import LANGUAGES, t
 
@@ -578,7 +579,7 @@ def ensure_columns(df):
         if c not in df.columns:
             df[c] = ""
     df["Time"] = df.apply(lambda r: default_match_time(r) or r["Time"], axis=1)
-    return df[cols].fillna("")
+    return apply_known_final_results(df[cols].fillna(""), normalize_team_name)
 
 def format_match_datetime(match_row):
     date = str(match_row.get("Date", "")).strip()
@@ -586,56 +587,6 @@ def format_match_datetime(match_row):
     if date and time:
         return f"{date} · {time}"
     return date or time or "TBD"
-
-def compute_match_outcome(row):
-    try:
-        sa, sb = row["Team A Score"], row["Team B Score"]
-        if sa == "" or sb == "":
-            return row
-        sa, sb = int(sa), int(sb)
-        if sa > sb:
-            row["Winner"], row["Loser"], row["Status"] = row["Team A"], row["Team B"], "Finished"
-        elif sb > sa:
-            row["Winner"], row["Loser"], row["Status"] = row["Team B"], row["Team A"], "Finished"
-        else:
-            row["Winner"], row["Loser"], row["Status"] = "Draw", "Draw", "Finished"
-    except Exception:
-        pass
-    return row
-
-def build_standings(matches):
-    rows = []
-    teams = pd.unique(matches[["Team A", "Team B"]].values.ravel("K"))
-    teams = [t for t in teams if t and str(t).strip()]
-    for team in teams:
-        group = matches[(matches["Team A"] == team) | (matches["Team B"] == team)]["Group"].dropna()
-        group = group.iloc[0] if len(group) else ""
-        rows.append({"Group": group, "Team": team, "P": 0, "W": 0, "D": 0, "L": 0, "GF": 0, "GA": 0, "Pts": 0})
-    if not rows:
-        return pd.DataFrame(columns=["Group", "Team", "P", "W", "D", "L", "GF", "GA", "GD", "Pts"])
-    stg = pd.DataFrame(rows).drop_duplicates(subset=["Group", "Team"]).set_index(["Group", "Team"])
-    for _, r in matches.iterrows():
-        if r["Status"] != "Finished":
-            continue
-        try:
-            sa, sb = int(r["Team A Score"]), int(r["Team B Score"])
-        except Exception:
-            continue
-        g, a, b = r["Group"], r["Team A"], r["Team B"]
-        for t, gf, ga in [(a, sa, sb), (b, sb, sa)]:
-            stg.loc[(g, t), "P"] += 1
-            stg.loc[(g, t), "GF"] += gf
-            stg.loc[(g, t), "GA"] += ga
-        if sa > sb:
-            stg.loc[(g, a), "W"] += 1; stg.loc[(g, a), "Pts"] += 3; stg.loc[(g, b), "L"] += 1
-        elif sb > sa:
-            stg.loc[(g, b), "W"] += 1; stg.loc[(g, b), "Pts"] += 3; stg.loc[(g, a), "L"] += 1
-        else:
-            stg.loc[(g, a), "D"] += 1; stg.loc[(g, b), "D"] += 1
-            stg.loc[(g, a), "Pts"] += 1; stg.loc[(g, b), "Pts"] += 1
-    out = stg.reset_index()
-    out["GD"] = out["GF"] - out["GA"]
-    return out.sort_values(["Group", "Pts", "GD", "GF", "Team"], ascending=[True, False, False, False, True])
 
 def get_qualifiers(standings):
     if len(standings) == 0:
