@@ -208,6 +208,15 @@ def test_prediction_shared_views_refresh_from_store():
     )
 
 
+def test_shared_prediction_views_do_not_require_player_name():
+    shared_line = next(
+        line for line in SOURCE.splitlines()
+        if "# Refresh persisted predictions before shared views" in line
+    )
+    assert shared_line.startswith("    # Refresh persisted predictions before shared views")
+    assert not shared_line.startswith("        # Refresh persisted predictions before shared views")
+
+
 def test_ralph_mexico_pick_is_repaired_before_predictions_load():
     assert 'REQUIRED_PREDICTIONS = [("Ralph", 1, "Mexico")]' in SOURCE
     assert "ensure_predictions(REQUIRED_PREDICTIONS)" in SOURCE

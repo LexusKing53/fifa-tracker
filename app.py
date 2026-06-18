@@ -1428,31 +1428,6 @@ with tab7:
                         )
                         made_any = True
 
-        # Refresh persisted predictions before shared views so other players appear.
-        st.session_state.predictions = load_predictions()
-        st.session_state.predictions = score_predictions(st.session_state.predictions, st.session_state.matches)
-
-        # ── LEADERBOARD ───────────────────────────────────────────────────────
-        st.markdown(t("leaderboard", lang))
-        lb = get_leaderboard(st.session_state.predictions)
-        if len(lb) == 0:
-            st.info(t("leaderboard_empty", lang))
-        else:
-            medals = ["🥇", "🥈", "🥉"]
-            for i, row in lb.iterrows():
-                medal = medals[i] if i < 3 else f"{i+1}."
-                bar_width = int((row["Points"] / (lb["Points"].max() + 1)) * 100)
-                st.markdown(f"""
-                <div class='match-card' style='margin:4px 0'>
-                    <span style='font-size:1.3rem'>{medal}</span>
-                    <span style='font-weight:700;min-width:120px'>{row["Player"]}</span>
-                    <div style='flex:1;background:#0a0e1a;border-radius:6px;height:12px;margin:0 12px'>
-                        <div style='width:{bar_width}%;background:linear-gradient(90deg,#F7C948,#FF9F43);height:100%;border-radius:6px'></div>
-                    </div>
-                    <span style='color:#F7C948;font-family:Bebas Neue,sans-serif;font-size:1.2rem'>{row["Points"]} pts</span>
-                    <span style='color:#48D8A0;font-size:0.8rem'>{row["Correct"]}/{row["Predicted"]} correct ({row["Accuracy"]})</span>
-                </div>""", unsafe_allow_html=True)
-
         # ── MY PREDICTIONS ────────────────────────────────────────────────────
         st.markdown(t("my_predictions", lang))
         my_preds = st.session_state.predictions[st.session_state.predictions["Player"] == player].copy()
@@ -1472,33 +1447,58 @@ with tab7:
             )
             st.markdown(render_centered_table(display_preds, hide_index=True), unsafe_allow_html=True)
 
-        # ── ALL PLAYERS PREDICTIONS GRID ──────────────────────────────────────
-        st.markdown(t("everyone_picks", lang))
-        all_preds = st.session_state.predictions.copy()
-        if len(all_preds) == 0:
-            st.info(t("no_predictions", lang))
-        else:
-            all_players = sorted(all_preds["Player"].unique())
-            # Build match labels
-            match_labels = st.session_state.matches[["Match ID", "Team A", "Team B", "Date", "Time", "Group"]].copy()
-            match_labels = sort_matches_by_kickoff(match_labels)
-            match_labels["Kickoff"] = match_labels.apply(format_match_datetime, axis=1)
-            match_labels["Match"] = match_labels.apply(
-                lambda r: f"{flag(r['Team A'])} {r['Team A']} vs {r['Team B']} {flag(r['Team B'])}", axis=1
-            )
-            # Pivot: rows=matches, cols=players
-            grid = match_labels[["Match ID", "Date", "Kickoff", "Group", "Match"]].copy()
-            for p in all_players:
-                p_preds = all_preds[all_preds["Player"] == p][["Match ID", "Predicted Winner", "Correct"]].copy()
-                p_preds.columns = ["Match ID", p, f"{p}_result"]
-                grid = grid.merge(p_preds, on="Match ID", how="left")
-                # Combine pick + result into one cell
-                def fmt(row, p=p):
-                    pick = row[p] if pd.notna(row[p]) else "—"
-                    result = row[f"{p}_result"] if pd.notna(row.get(f"{p}_result")) else ""
-                    return f"{pick} {result}".strip()
-                grid[p] = grid.apply(fmt, axis=1)
-                grid = grid.drop(columns=[f"{p}_result"])
+    # Refresh persisted predictions before shared views so other players appear.
+    st.session_state.predictions = load_predictions()
+    st.session_state.predictions = score_predictions(st.session_state.predictions, st.session_state.matches)
 
-            display_grid = grid[["Kickoff", "Group", "Match"] + all_players]
-            st.markdown(render_centered_table(display_grid, hide_index=True), unsafe_allow_html=True)
+    # ── LEADERBOARD ───────────────────────────────────────────────────────
+    st.markdown(t("leaderboard", lang))
+    lb = get_leaderboard(st.session_state.predictions)
+    if len(lb) == 0:
+        st.info(t("leaderboard_empty", lang))
+    else:
+        medals = ["🥇", "🥈", "🥉"]
+        for i, row in lb.iterrows():
+            medal = medals[i] if i < 3 else f"{i+1}."
+            bar_width = int((row["Points"] / (lb["Points"].max() + 1)) * 100)
+            st.markdown(f"""
+            <div class='match-card' style='margin:4px 0'>
+                <span style='font-size:1.3rem'>{medal}</span>
+                <span style='font-weight:700;min-width:120px'>{row["Player"]}</span>
+                <div style='flex:1;background:#0a0e1a;border-radius:6px;height:12px;margin:0 12px'>
+                    <div style='width:{bar_width}%;background:linear-gradient(90deg,#F7C948,#FF9F43);height:100%;border-radius:6px'></div>
+                </div>
+                <span style='color:#F7C948;font-family:Bebas Neue,sans-serif;font-size:1.2rem'>{row["Points"]} pts</span>
+                <span style='color:#48D8A0;font-size:0.8rem'>{row["Correct"]}/{row["Predicted"]} correct ({row["Accuracy"]})</span>
+            </div>""", unsafe_allow_html=True)
+
+    # ── ALL PLAYERS PREDICTIONS GRID ──────────────────────────────────────
+    st.markdown(t("everyone_picks", lang))
+    all_preds = st.session_state.predictions.copy()
+    if len(all_preds) == 0:
+        st.info(t("no_predictions", lang))
+    else:
+        all_players = sorted(all_preds["Player"].unique())
+        # Build match labels
+        match_labels = st.session_state.matches[["Match ID", "Team A", "Team B", "Date", "Time", "Group"]].copy()
+        match_labels = sort_matches_by_kickoff(match_labels)
+        match_labels["Kickoff"] = match_labels.apply(format_match_datetime, axis=1)
+        match_labels["Match"] = match_labels.apply(
+            lambda r: f"{flag(r['Team A'])} {r['Team A']} vs {r['Team B']} {flag(r['Team B'])}", axis=1
+        )
+        # Pivot: rows=matches, cols=players
+        grid = match_labels[["Match ID", "Date", "Kickoff", "Group", "Match"]].copy()
+        for p in all_players:
+            p_preds = all_preds[all_preds["Player"] == p][["Match ID", "Predicted Winner", "Correct"]].copy()
+            p_preds.columns = ["Match ID", p, f"{p}_result"]
+            grid = grid.merge(p_preds, on="Match ID", how="left")
+            # Combine pick + result into one cell
+            def fmt(row, p=p):
+                pick = row[p] if pd.notna(row[p]) else "—"
+                result = row[f"{p}_result"] if pd.notna(row.get(f"{p}_result")) else ""
+                return f"{pick} {result}".strip()
+            grid[p] = grid.apply(fmt, axis=1)
+            grid = grid.drop(columns=[f"{p}_result"])
+
+        display_grid = grid[["Kickoff", "Group", "Match"] + all_players]
+        st.markdown(render_centered_table(display_grid, hide_index=True), unsafe_allow_html=True)
