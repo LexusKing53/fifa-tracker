@@ -1,4 +1,5 @@
 import pandas as pd
+import warnings
 
 from match_results import apply_known_final_results, build_standings
 
@@ -129,3 +130,34 @@ def test_cape_verde_saudi_arabia_zero_zero_draw_is_finished_and_scores_one_point
     assert standings.loc["Saudi Arabia", "P"] == 1
     assert standings.loc["Saudi Arabia", "D"] == 1
     assert standings.loc["Saudi Arabia", "Pts"] == 1
+
+
+def test_apply_known_final_results_handles_numeric_score_columns():
+    matches = pd.DataFrame([
+        {
+            "Match ID": 47,
+            "Group": "H",
+            "Date": "2026-06-26",
+            "Time": "8:00 PM ET",
+            "Team A": "Cape Verde",
+            "Team B": "Saudi Arabia",
+            "Team A Score": None,
+            "Team B Score": None,
+            "Winner": "",
+            "Loser": "",
+            "Status": "Upcoming",
+            "Venue": "Houston Stadium",
+        },
+    ])
+    matches["Team A Score"] = matches["Team A Score"].astype("float64")
+    matches["Team B Score"] = matches["Team B Score"].astype("float64")
+
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        updated = apply_known_final_results(matches)
+    result = updated.loc[updated["Match ID"] == 47].iloc[0]
+
+    assert not [w for w in caught if issubclass(w.category, FutureWarning)]
+    assert result["Team A Score"] == "0"
+    assert result["Team B Score"] == "0"
+    assert result["Status"] == "Finished"

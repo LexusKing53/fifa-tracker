@@ -60,6 +60,9 @@ def compute_match_outcome(row):
 
 def apply_known_final_results(matches_df, normalizer=None):
     updated = matches_df.copy()
+    for column in ["Team A Score", "Team B Score", "Winner", "Loser", "Status"]:
+        if column in updated.columns:
+            updated[column] = updated[column].astype("object")
     for idx, row in updated.iterrows():
         result = _known_result_for(row, normalizer)
         if result is None:
