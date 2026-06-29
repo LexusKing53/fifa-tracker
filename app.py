@@ -596,11 +596,24 @@ def get_qualifiers(standings):
     return pd.concat([top_two, thirds], ignore_index=True)
 
 def build_round_of_32(qualifiers):
-    q = qualifiers.reset_index(drop=True)
-    pairs = []
-    for i in range(0, min(len(q), 32), 2):
-        if i + 1 < len(q):
-            pairs.append({"Match": f"R32-{i//2+1}", "Team A": q.loc[i, "Team"], "Team B": q.loc[i+1, "Team"], "Status": "Upcoming", "Winner": ""})
+    pairs = [
+        {"Match": "R32-1", "Team A": "South Africa", "Team B": "Canada", "Status": "Upcoming", "Winner": ""},
+        {"Match": "R32-2", "Team A": "Brazil", "Team B": "Japan", "Status": "Upcoming", "Winner": ""},
+        {"Match": "R32-3", "Team A": "Germany", "Team B": "Paraguay", "Status": "Upcoming", "Winner": ""},
+        {"Match": "R32-4", "Team A": "Netherlands", "Team B": "Morocco", "Status": "Upcoming", "Winner": ""},
+        {"Match": "R32-5", "Team A": "Ivory Coast", "Team B": "Norway", "Status": "Upcoming", "Winner": ""},
+        {"Match": "R32-6", "Team A": "France", "Team B": "Sweden", "Status": "Upcoming", "Winner": ""},
+        {"Match": "R32-7", "Team A": "Mexico", "Team B": "Ecuador", "Status": "Upcoming", "Winner": ""},
+        {"Match": "R32-8", "Team A": "England", "Team B": "DR Congo", "Status": "Upcoming", "Winner": ""},
+        {"Match": "R32-9", "Team A": "Belgium", "Team B": "Senegal", "Status": "Upcoming", "Winner": ""},
+        {"Match": "R32-10", "Team A": "United States", "Team B": "Bosnia and Herzegovina", "Status": "Upcoming", "Winner": ""},
+        {"Match": "R32-11", "Team A": "Switzerland", "Team B": "Algeria", "Status": "Upcoming", "Winner": ""},
+        {"Match": "R32-12", "Team A": "Spain", "Team B": "Austria", "Status": "Upcoming", "Winner": ""},
+        {"Match": "R32-13", "Team A": "Argentina", "Team B": "Cape Verde", "Status": "Upcoming", "Winner": ""},
+        {"Match": "R32-14", "Team A": "Colombia", "Team B": "Ghana", "Status": "Upcoming", "Winner": ""},
+        {"Match": "R32-15", "Team A": "Portugal", "Team B": "Croatia", "Status": "Upcoming", "Winner": ""},
+        {"Match": "R32-16", "Team A": "Australia", "Team B": "Egypt", "Status": "Upcoming", "Winner": ""},
+    ]
     return pd.DataFrame(pairs)
 
 def advance_round(prev_round_df):
@@ -1089,8 +1102,15 @@ with tab3:
         """)
     else:
         # ── ROUND OF 32 ───────────────────────────────────────────────────
+        expected_r32 = build_round_of_32(qualifiers)
         if "r32" not in st.session_state:
-            st.session_state.r32 = build_round_of_32(qualifiers)
+            st.session_state.r32 = expected_r32
+        else:
+            current_r32 = st.session_state.r32
+            current_matchups = current_r32[["Match", "Team A", "Team B"]].reset_index(drop=True)
+            expected_matchups = expected_r32[["Match", "Team A", "Team B"]].reset_index(drop=True)
+            if not current_matchups.equals(expected_matchups):
+                st.session_state.r32 = expected_r32
 
         def render_round(df, title, key, interactive=True):
             st.markdown(f"<h3 style='color:#F7C948;font-family:Bebas Neue,sans-serif;letter-spacing:2px;margin-top:1.5rem'>{title}</h3>", unsafe_allow_html=True)

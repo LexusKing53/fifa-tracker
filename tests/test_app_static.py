@@ -240,3 +240,10 @@ def test_bracket_keeps_future_rounds_visible_as_previews():
     assert 'st.session_state.r16 = render_round(st.session_state.r16, "⚔️ ROUND OF 16", "r16", interactive=True)' in SOURCE
     assert 'render_round(advance_round(st.session_state.r32), "⚔️ ROUND OF 16", "r16_preview", interactive=False)' in SOURCE
     assert 'Complete all Round of 32 winners to populate the Round of 16.' in SOURCE
+
+
+def test_round_of_32_uses_hardcoded_matchups():
+    assert '{"Match": "R32-2", "Team A": "Brazil", "Team B": "Japan", "Status": "Upcoming", "Winner": ""}' in SOURCE
+    assert '{"Match": "R32-4", "Team A": "Netherlands", "Team B": "Morocco", "Status": "Upcoming", "Winner": ""}' in SOURCE
+    assert '{"Match": "R32-6", "Team A": "France", "Team B": "Sweden", "Status": "Upcoming", "Winner": ""}' in SOURCE
+    assert 'pairs.append({"Match": f"R32-{i//2+1}", "Team A": q.loc[i, "Team"], "Team B": q.loc[i+1, "Team"], "Status": "Upcoming", "Winner": ""})' not in SOURCE
