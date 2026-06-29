@@ -196,9 +196,9 @@ def test_fixture_cards_show_start_time_with_soon_status():
 
 def test_prediction_views_show_start_time():
     assert "format_match_datetime(match)" in SOURCE
-    assert 'prediction_match_labels = build_prediction_match_labels(st.session_state.matches)' in SOURCE
+    assert 'prediction_match_labels = build_prediction_match_labels(prediction_match_catalog)' in SOURCE
     assert 'prediction_match_labels[["Match ID", "Team A", "Team B", "Kickoff", "Group", "Match"]]' in SOURCE
-    assert 'match_labels = build_prediction_match_labels(st.session_state.matches)' in SOURCE
+    assert 'match_labels = build_prediction_match_labels(prediction_match_catalog)' in SOURCE
 
 
 def test_prediction_shared_views_refresh_from_store():
@@ -251,8 +251,13 @@ def test_round_of_32_uses_hardcoded_matchups():
 
 
 def test_predictions_page_has_separate_round_of_32_section():
-    assert "def build_prediction_match_catalog(" in SOURCE
-    assert 'r32_matches = build_round_of_32(pd.DataFrame()).copy()' in SOURCE
-    assert 'r32_matches["Group"] = "R32"' in SOURCE
+    assert "from prediction_matches import build_prediction_match_catalog" in SOURCE
+    assert 'prediction_match_catalog = build_prediction_match_catalog(st.session_state.matches)' in SOURCE
+    assert 'r32_matches = prediction_match_catalog[prediction_match_catalog["Group"] == "R32"].copy()' in SOURCE
     assert 'st.markdown("### Round of 32 Predictions")' in SOURCE
     assert 'knockout_options = [pick_placeholder, match["Team A"], match["Team B"]]' in SOURCE
+
+
+def test_prediction_views_hide_finished_group_matches_and_score_round_of_32():
+    assert 'st.session_state.predictions = score_predictions(st.session_state.predictions, prediction_match_catalog)' in SOURCE
+    assert 'prediction_match_labels = build_prediction_match_labels(prediction_match_catalog)' in SOURCE
