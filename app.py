@@ -616,6 +616,35 @@ def build_round_of_32(qualifiers):
     ]
     return pd.DataFrame(pairs)
 
+
+def build_prediction_match_catalog(matches_df):
+    match_catalog = matches_df[["Match ID", "Group", "Date", "Time", "Team A", "Team B", "Status"]].copy()
+    r32_matches = build_round_of_32(pd.DataFrame()).copy()
+    r32_matches["Match ID"] = range(1001, 1001 + len(r32_matches))
+    r32_matches["Group"] = "R32"
+    r32_matches["Date"] = ""
+    r32_matches["Time"] = ""
+    return pd.concat(
+        [match_catalog, r32_matches[["Match ID", "Group", "Date", "Time", "Team A", "Team B", "Status"]]],
+        ignore_index=True,
+    )
+
+
+def build_prediction_match_labels(matches_df):
+    match_catalog = build_prediction_match_catalog(matches_df)
+    group_matches = match_catalog[match_catalog["Group"] != "R32"].copy()
+    group_matches = sort_matches_by_kickoff(group_matches)
+    group_matches["Kickoff"] = group_matches.apply(format_match_datetime, axis=1)
+
+    r32_matches = match_catalog[match_catalog["Group"] == "R32"].copy()
+    r32_matches["Kickoff"] = "Round of 32"
+
+    match_labels = pd.concat([group_matches, r32_matches], ignore_index=True)
+    match_labels["Match"] = match_labels.apply(
+        lambda r: f"{flag(r['Team A'])} {r['Team A']} vs {r['Team B']} {flag(r['Team B'])}", axis=1
+    )
+    return match_labels
+
 def advance_round(prev_round_df):
     """Takes winners from a round and pairs them into the next round."""
     winners = list(prev_round_df["Winner"].values)
@@ -1412,6 +1441,7 @@ with tab7:
     else:
         player = st.session_state.player_name
         st.markdown(f"<p style='color:#48D8A0;font-weight:700'>{t('playing_as', lang)}: {player} 🎮</p>", unsafe_allow_html=True)
+        prediction_match_labels = build_prediction_match_labels(st.session_state.matches)
 
         # Score existing predictions
         st.session_state.predictions = score_predictions(st.session_state.predictions, st.session_state.matches)
@@ -1478,6 +1508,62 @@ with tab7:
                         )
                         made_any = True
 
+        st.markdown("### Round of 32 Predictions")
+        r32_matches = build_round_of_32(pd.DataFrame()).copy()
+        r32_matches["Match ID"] = range(1001, 1001 + len(r32_matches))
+        r32_matches["Group"] = "R32"
+        r32_matches["Date"] = ""
+        r32_matches["Time"] = ""
+        r32_matches["Status"] = "Upcoming"
+
+        for _, match in r32_matches.iterrows():
+            match_id = match["Match ID"]
+            existing = st.session_state.predictions[
+                (st.session_state.predictions["Player"] == player) &
+                (st.session_state.predictions["Match ID"] == match_id)
+            ]
+            already_picked = existing.iloc[0]["Predicted Winner"] if len(existing) > 0 else None
+
+            st.markdown(f"""
+            <div class='match-card' style='margin-bottom:0.3rem'>
+                <span class='group-badge' style='background:#F7C94822;color:#F7C948;border:1px solid #F7C94844'>R32</span>
+                <span style='color:#5a6a8a;font-size:0.8rem'>Round of 32</span>
+                <span style='font-weight:700'>{flag(match["Team A"])} {match["Team A"]} vs {match["Team B"]} {flag(match["Team B"])}</span>
+                <span style='color:#48D8A0;font-size:0.75rem'>🟢 Open</span>
+                {"<span style='color:#F7C948;font-size:0.8rem'>" + t("your_pick", lang) + ": " + already_picked + "</span>" if already_picked else ""}
+            </div>""", unsafe_allow_html=True)
+
+            pick_placeholder = t("pick_winner_placeholder", lang)
+            knockout_options = [pick_placeholder, match["Team A"], match["Team B"]]
+            current_idx = 0
+            if already_picked and already_picked in knockout_options:
+                current_idx = knockout_options.index(already_picked)
+
+            pick_label = f"Pick winner for {match['Team A']} vs {match['Team B']}"
+            pick = st.selectbox(
+                pick_label,
+                knockout_options,
+                index=current_idx,
+                key=f"r32_pred_{player}_{match_id}",
+                label_visibility="collapsed",
+            )
+
+            if pick != pick_placeholder and pick != already_picked:
+                save_prediction(player, match_id, pick)
+                st.session_state.predictions = st.session_state.predictions[
+                    ~((st.session_state.predictions["Player"] == player) &
+                      (st.session_state.predictions["Match ID"] == match_id))
+                ]
+                new_row = pd.DataFrame([{
+                    "Player": player,
+                    "Match ID": match_id,
+                    "Predicted Winner": pick,
+                    "Correct": ""
+                }])
+                st.session_state.predictions = pd.concat(
+                    [st.session_state.predictions, new_row], ignore_index=True
+                )
+
         # ── MY PREDICTIONS ────────────────────────────────────────────────────
         st.markdown(t("my_predictions", lang))
         my_preds = st.session_state.predictions[st.session_state.predictions["Player"] == player].copy()
@@ -1485,12 +1571,8 @@ with tab7:
             st.info(t("no_my_predictions", lang))
         else:
             my_preds = my_preds.merge(
-                st.session_state.matches[["Match ID", "Team A", "Team B", "Date", "Time", "Group"]],
+                prediction_match_labels[["Match ID", "Team A", "Team B", "Kickoff", "Group", "Match"]],
                 on="Match ID", how="left"
-            )
-            my_preds["Kickoff"] = my_preds.apply(format_match_datetime, axis=1)
-            my_preds["Match"] = my_preds.apply(
-                lambda r: f"{flag(r['Team A'])} {r['Team A']} vs {r['Team B']} {flag(r['Team B'])}", axis=1
             )
             display_preds = my_preds[["Kickoff", "Group", "Match", "Predicted Winner", "Correct"]].rename(
                 columns={"Predicted Winner": "Your Pick", "Correct": "Result"}
@@ -1530,12 +1612,7 @@ with tab7:
     else:
         all_players = sorted(all_preds["Player"].unique())
         # Build match labels
-        match_labels = st.session_state.matches[["Match ID", "Team A", "Team B", "Date", "Time", "Group"]].copy()
-        match_labels = sort_matches_by_kickoff(match_labels)
-        match_labels["Kickoff"] = match_labels.apply(format_match_datetime, axis=1)
-        match_labels["Match"] = match_labels.apply(
-            lambda r: f"{flag(r['Team A'])} {r['Team A']} vs {r['Team B']} {flag(r['Team B'])}", axis=1
-        )
+        match_labels = build_prediction_match_labels(st.session_state.matches)
         # Pivot: rows=matches, cols=players
         grid = match_labels[["Match ID", "Date", "Kickoff", "Group", "Match"]].copy()
         for p in all_players:
