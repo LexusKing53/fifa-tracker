@@ -9,6 +9,7 @@ TEAM_ALIASES = {
 KNOWN_FINAL_RESULTS = {
     ("2026-06-15", "Spain", "Cape Verde"): (0, 0),
     ("2026-06-21", "Uruguay", "Cape Verde"): (0, 0),
+    ("2026-06-26", "Cape Verde", "Saudi Arabia"): (0, 0),
 }
 
 

@@ -91,3 +91,41 @@ def test_uruguay_cape_verde_zero_zero_draw_is_finished_and_scores_one_point_each
     assert standings.loc["Cape Verde", "P"] == 1
     assert standings.loc["Cape Verde", "D"] == 1
     assert standings.loc["Cape Verde", "Pts"] == 1
+
+
+def test_cape_verde_saudi_arabia_zero_zero_draw_is_finished_and_scores_one_point_each():
+    matches = pd.DataFrame([
+        {
+            "Match ID": 47,
+            "Group": "H",
+            "Date": "2026-06-26",
+            "Time": "8:00 PM ET",
+            "Team A": "Cape Verde",
+            "Team B": "Saudi Arabia",
+            "Team A Score": "",
+            "Team B Score": "",
+            "Winner": "",
+            "Loser": "",
+            "Status": "Upcoming",
+            "Venue": "Houston Stadium",
+        },
+    ])
+
+    updated = apply_known_final_results(matches)
+    result = updated.loc[updated["Match ID"] == 47].iloc[0]
+
+    assert result["Team A Score"] == "0"
+    assert result["Team B Score"] == "0"
+    assert result["Winner"] == "Draw"
+    assert result["Loser"] == "Draw"
+    assert result["Status"] == "Finished"
+    assert 47 not in updated[updated["Status"] != "Finished"]["Match ID"].tolist()
+
+    standings = build_standings(updated).set_index("Team")
+
+    assert standings.loc["Cape Verde", "P"] == 1
+    assert standings.loc["Cape Verde", "D"] == 1
+    assert standings.loc["Cape Verde", "Pts"] == 1
+    assert standings.loc["Saudi Arabia", "P"] == 1
+    assert standings.loc["Saudi Arabia", "D"] == 1
+    assert standings.loc["Saudi Arabia", "Pts"] == 1

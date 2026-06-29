@@ -234,3 +234,9 @@ def test_prediction_selectboxes_have_non_empty_accessible_labels():
 def test_auto_sync_writes_scores_as_strings():
     assert 'updated.at[idx, "Team A Score"] = str(home_score)' in SOURCE
     assert 'updated.at[idx, "Team B Score"] = str(away_score)' in SOURCE
+
+
+def test_bracket_keeps_future_rounds_visible_as_previews():
+    assert 'st.session_state.r16 = render_round(st.session_state.r16, "⚔️ ROUND OF 16", "r16", interactive=True)' in SOURCE
+    assert 'render_round(advance_round(st.session_state.r32), "⚔️ ROUND OF 16", "r16_preview", interactive=False)' in SOURCE
+    assert 'Complete all Round of 32 winners to populate the Round of 16.' in SOURCE

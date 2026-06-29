@@ -1092,8 +1092,11 @@ with tab3:
         if "r32" not in st.session_state:
             st.session_state.r32 = build_round_of_32(qualifiers)
 
-        def render_round(df, title, key):
+        def render_round(df, title, key, interactive=True):
             st.markdown(f"<h3 style='color:#F7C948;font-family:Bebas Neue,sans-serif;letter-spacing:2px;margin-top:1.5rem'>{title}</h3>", unsafe_allow_html=True)
+            if len(df) == 0:
+                st.info("This stage will appear automatically once the earlier bracket rounds are available.")
+                return df
             cols_count = min(4, len(df))
             cols = st.columns(cols_count)
             updated = df.copy()
@@ -1111,77 +1114,104 @@ with tab3:
                     current = row["Winner"] if row["Winner"] else "—"
                     if current not in options:
                         current = "—"
-                    choice = st.selectbox("Winner", options, index=options.index(current), key=f"{key}_{i}", label_visibility="collapsed")
-                    updated.at[idx, "Winner"] = "" if choice == "—" else choice
+                    if interactive:
+                        choice = st.selectbox("Winner", options, index=options.index(current), key=f"{key}_{i}", label_visibility="collapsed")
+                        updated.at[idx, "Winner"] = "" if choice == "—" else choice
             return updated
 
-        st.session_state.r32 = render_round(st.session_state.r32, "🥊 ROUND OF 32", "r32")
+        def sync_round_state(key, prev_round_df):
+            expected = advance_round(prev_round_df)
+            existing = st.session_state.get(key)
+            if existing is None or len(existing) != len(expected):
+                st.session_state[key] = expected
+                return st.session_state[key]
+
+            matchup_cols = ["Match", "Team A", "Team B"]
+            current_matchups = existing[matchup_cols].reset_index(drop=True)
+            expected_matchups = expected[matchup_cols].reset_index(drop=True)
+            if not current_matchups.equals(expected_matchups):
+                st.session_state[key] = expected
+            return st.session_state[key]
+
+        st.session_state.r32 = render_round(st.session_state.r32, "🥊 ROUND OF 32", "r32", interactive=True)
 
         # ── ROUND OF 16 ───────────────────────────────────────────────────
         r32_complete = st.session_state.r32["Winner"].ne("").all()
         if r32_complete:
-            if "r16" not in st.session_state or len(st.session_state.r16) == 0:
-                st.session_state.r16 = advance_round(st.session_state.r32)
-            st.session_state.r16 = render_round(st.session_state.r16, "⚔️ ROUND OF 16", "r16")
+            st.session_state.r16 = sync_round_state("r16", st.session_state.r32)
+            st.session_state.r16 = render_round(st.session_state.r16, "⚔️ ROUND OF 16", "r16", interactive=True)
+            r16_source = st.session_state.r16
+        else:
+            render_round(advance_round(st.session_state.r32), "⚔️ ROUND OF 16", "r16_preview", interactive=False)
+            st.caption("Complete all Round of 32 winners to populate the Round of 16.")
+            r16_source = advance_round(st.session_state.r32)
 
-            # ── QUARTERFINALS ─────────────────────────────────────────────
-            r16_complete = st.session_state.r16["Winner"].ne("").all()
-            if r16_complete:
-                if "qf" not in st.session_state or len(st.session_state.qf) == 0:
-                    st.session_state.qf = advance_round(st.session_state.r16)
-                st.session_state.qf = render_round(st.session_state.qf, "🏅 QUARTERFINALS", "qf")
+        # ── QUARTERFINALS ─────────────────────────────────────────────
+        r16_complete = r32_complete and st.session_state.r16["Winner"].ne("").all()
+        if r16_complete:
+            st.session_state.qf = sync_round_state("qf", st.session_state.r16)
+            st.session_state.qf = render_round(st.session_state.qf, "🏅 QUARTERFINALS", "qf", interactive=True)
+            qf_source = st.session_state.qf
+        else:
+            render_round(advance_round(r16_source), "🏅 QUARTERFINALS", "qf_preview", interactive=False)
+            st.caption("Complete all Round of 16 winners to populate the Quarterfinals.")
+            qf_source = advance_round(r16_source)
 
-                # ── SEMIFINALS ────────────────────────────────────────────
-                qf_complete = st.session_state.qf["Winner"].ne("").all()
-                if qf_complete:
-                    if "sf" not in st.session_state or len(st.session_state.sf) == 0:
-                        st.session_state.sf = advance_round(st.session_state.qf)
-                    st.session_state.sf = render_round(st.session_state.sf, "🔥 SEMIFINALS", "sf")
+        # ── SEMIFINALS ────────────────────────────────────────────
+        qf_complete = r16_complete and st.session_state.qf["Winner"].ne("").all()
+        if qf_complete:
+            st.session_state.sf = sync_round_state("sf", st.session_state.qf)
+            st.session_state.sf = render_round(st.session_state.sf, "🔥 SEMIFINALS", "sf", interactive=True)
+            sf_source = st.session_state.sf
+        else:
+            render_round(advance_round(qf_source), "🔥 SEMIFINALS", "sf_preview", interactive=False)
+            st.caption("Complete all Quarterfinal winners to populate the Semifinals.")
+            sf_source = advance_round(qf_source)
 
-                    # ── 3RD PLACE PLAYOFF ─────────────────────────────────
-                    sf_complete = st.session_state.sf["Winner"].ne("").all()
-                    if sf_complete:
-                        # Build 3rd place match from SF losers
-                        if "third_place" not in st.session_state or len(st.session_state.get("third_place", [])) == 0:
-                            sf_losers = []
-                            for _, row in st.session_state.sf.iterrows():
-                                loser = row["Team A"] if row["Winner"] == row["Team B"] else row["Team B"]
-                                sf_losers.append(loser)
-                            if len(sf_losers) == 2:
-                                st.session_state.third_place = pd.DataFrame([{
-                                    "Match": "3rd Place",
-                                    "Team A": sf_losers[0],
-                                    "Team B": sf_losers[1],
-                                    "Status": "Upcoming",
-                                    "Winner": ""
-                                }])
+        # ── FINAL ─────────────────────────────────────────────────
+        sf_complete = qf_complete and st.session_state.sf["Winner"].ne("").all()
+        if sf_complete:
+            # Build 3rd place match from SF losers
+            if "third_place" not in st.session_state or len(st.session_state.get("third_place", [])) == 0:
+                sf_losers = []
+                for _, row in st.session_state.sf.iterrows():
+                    loser = row["Team A"] if row["Winner"] == row["Team B"] else row["Team B"]
+                    sf_losers.append(loser)
+                if len(sf_losers) == 2:
+                    st.session_state.third_place = pd.DataFrame([{
+                        "Match": "3rd Place",
+                        "Team A": sf_losers[0],
+                        "Team B": sf_losers[1],
+                        "Status": "Upcoming",
+                        "Winner": ""
+                    }])
 
-                        if "third_place" in st.session_state:
-                            st.session_state.third_place = render_round(st.session_state.third_place, "🥉 3RD PLACE PLAYOFF", "third_place")
-                            third_winner = st.session_state.third_place["Winner"].iloc[0] if st.session_state.third_place["Winner"].iloc[0] else None
-                            if third_winner:
-                                st.markdown(f"""
-                                <div style='text-align:center;padding:1rem;background:linear-gradient(135deg,#1a1a00,#2a2a10);border:2px solid #CD7F32;border-radius:16px;margin-top:0.5rem'>
-                                    <div style='font-size:2.5rem'>{flag(third_winner)}</div>
-                                    <div style='font-family:Bebas Neue,sans-serif;font-size:2rem;color:#CD7F32;letter-spacing:3px'>{third_winner}</div>
-                                    <div style='color:#8a9ab5;font-size:0.9rem;margin-top:0.3rem'>🥉 3RD PLACE</div>
-                                </div>""", unsafe_allow_html=True)
+            if "third_place" in st.session_state:
+                st.session_state.third_place = render_round(st.session_state.third_place, "🥉 3RD PLACE PLAYOFF", "third_place", interactive=True)
+                third_winner = st.session_state.third_place["Winner"].iloc[0] if st.session_state.third_place["Winner"].iloc[0] else None
+                if third_winner:
+                    st.markdown(f"""
+                    <div style='text-align:center;padding:1rem;background:linear-gradient(135deg,#1a1a00,#2a2a10);border:2px solid #CD7F32;border-radius:16px;margin-top:0.5rem'>
+                        <div style='font-size:2.5rem'>{flag(third_winner)}</div>
+                        <div style='font-family:Bebas Neue,sans-serif;font-size:2rem;color:#CD7F32;letter-spacing:3px'>{third_winner}</div>
+                        <div style='color:#8a9ab5;font-size:0.9rem;margin-top:0.3rem'>🥉 3RD PLACE</div>
+                    </div>""", unsafe_allow_html=True)
 
-                    # ── FINAL ─────────────────────────────────────────────────
-                    if sf_complete:
-                        if "final" not in st.session_state or len(st.session_state.final) == 0:
-                            st.session_state.final = advance_round(st.session_state.sf)
-                        st.session_state.final = render_round(st.session_state.final, "🏆 FINAL", "final")
+            st.session_state.final = sync_round_state("final", st.session_state.sf)
+            st.session_state.final = render_round(st.session_state.final, "🏆 FINAL", "final", interactive=True)
 
-                        final_winner = st.session_state.final["Winner"].iloc[0] if len(st.session_state.final) and st.session_state.final["Winner"].iloc[0] else None
-                        if final_winner:
-                            st.balloons()
-                            st.markdown(f"""
-                            <div style='text-align:center;padding:2rem;background:linear-gradient(135deg,#1a2a00,#2a3a00);border:2px solid #F7C948;border-radius:16px;margin-top:1rem'>
-                                <div style='font-size:4rem'>{flag(final_winner)}</div>
-                                <div style='font-family:Bebas Neue,sans-serif;font-size:3rem;color:#F7C948;letter-spacing:3px'>{final_winner}</div>
-                                <div style='color:#8a9ab5;font-size:1rem;margin-top:0.5rem'>🏆 FIFA WORLD CUP 2026 CHAMPION</div>
-                            </div>""", unsafe_allow_html=True)
+            final_winner = st.session_state.final["Winner"].iloc[0] if len(st.session_state.final) and st.session_state.final["Winner"].iloc[0] else None
+            if final_winner:
+                st.balloons()
+                st.markdown(f"""
+                <div style='text-align:center;padding:2rem;background:linear-gradient(135deg,#1a2a00,#2a3a00);border:2px solid #F7C948;border-radius:16px;margin-top:1rem'>
+                    <div style='font-size:4rem'>{flag(final_winner)}</div>
+                    <div style='font-family:Bebas Neue,sans-serif;font-size:3rem;color:#F7C948;letter-spacing:3px'>{final_winner}</div>
+                    <div style='color:#8a9ab5;font-size:1rem;margin-top:0.5rem'>🏆 FIFA WORLD CUP 2026 CHAMPION</div>
+                </div>""", unsafe_allow_html=True)
+        else:
+            render_round(advance_round(sf_source), "🏆 FINAL", "final_preview", interactive=False)
+            st.caption("Complete all Semifinal winners to populate the 3rd Place Playoff and Final.")
 
         if st.button("🔄 Reset Bracket", type="secondary"):
             for key in ["r32", "r16", "qf", "sf", "third_place", "final"]:
