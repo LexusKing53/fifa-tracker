@@ -4,11 +4,13 @@ from pathlib import Path
 from datetime import datetime
 import html
 import requests
+from bracket_store import clear_bracket, load_bracket, restore_bracket_round, save_bracket_round
 from fixture_utils import sort_matches_by_kickoff, today_et, todays_matches_for_display
 from match_lock import is_match_locked
 from match_results import apply_known_final_results, build_standings, compute_match_outcome
+from prediction_logic import filter_predictions_to_catalog, prediction_result_for_pick, score_predictions
 from prediction_matches import build_prediction_match_catalog
-from prediction_store import ensure_predictions, load_predictions, save_prediction
+from prediction_store import load_predictions, save_prediction, save_predictions
 from translations import LANGUAGES, t
 
 try:
@@ -29,7 +31,6 @@ API_KEY = get_secret("FOOTBALL_API_KEY")
 API_BASE = "https://api.football-data.org/v4"
 HEADERS = {"X-Auth-Token": API_KEY}
 WC2026_ID = 2000  # FIFA World Cup competition ID
-REQUIRED_PREDICTIONS = [("Ralph", 1, "Mexico")]
 
 # ── FLAGS ────────────────────────────────────────────────────────────────────
 FLAGS = {
@@ -766,20 +767,11 @@ def auto_sync_scores(matches_df):
 
 # ── SESSION STATE ─────────────────────────────────────────────────────────────
 
-def score_predictions(predictions, matches):
-    if len(predictions) == 0:
-        return predictions
-    records = predictions.to_dict("records")
-    for rec in records:
-        match = matches[matches["Match ID"] == rec["Match ID"]]
-        if len(match) == 0:
-            continue
-        match = match.iloc[0]
-        if match["Status"] != "Finished":
-            rec["Correct"] = ""
-        else:
-            rec["Correct"] = "✅" if str(rec["Predicted Winner"]) == str(match["Winner"]) else "❌"
-    return pd.DataFrame(records)
+def refresh_prediction_scores(predictions, matches):
+    scored = score_predictions(predictions, matches)
+    if not scored.equals(predictions):
+        save_predictions(scored)
+    return scored
 
 def get_leaderboard(predictions):
     if len(predictions) == 0:
@@ -794,8 +786,6 @@ def get_leaderboard(predictions):
     lb["Points"] = lb["Correct"] * 3
     lb["Accuracy"] = (lb["Correct"] / lb["Predicted"] * 100).round(1).astype(str) + "%"
     return lb.sort_values("Points", ascending=False).reset_index(drop=True)
-
-ensure_predictions(REQUIRED_PREDICTIONS)
 
 if "predictions" not in st.session_state:
     st.session_state.predictions = load_predictions()
@@ -1119,14 +1109,7 @@ with tab3:
     else:
         # ── ROUND OF 32 ───────────────────────────────────────────────────
         expected_r32 = build_round_of_32(qualifiers)
-        if "r32" not in st.session_state:
-            st.session_state.r32 = expected_r32
-        else:
-            current_r32 = st.session_state.r32
-            current_matchups = current_r32[["Match", "Team A", "Team B"]].reset_index(drop=True)
-            expected_matchups = expected_r32[["Match", "Team A", "Team B"]].reset_index(drop=True)
-            if not current_matchups.equals(expected_matchups):
-                st.session_state.r32 = expected_r32
+        saved_bracket = load_bracket()
 
         def render_round(df, title, key, interactive=True):
             st.markdown(f"<h3 style='color:#F7C948;font-family:Bebas Neue,sans-serif;letter-spacing:2px;margin-top:1.5rem'>{title}</h3>", unsafe_allow_html=True)
@@ -1155,76 +1138,71 @@ with tab3:
                         updated.at[idx, "Winner"] = "" if choice == "—" else choice
             return updated
 
-        def sync_round_state(key, prev_round_df):
-            expected = advance_round(prev_round_df)
-            existing = st.session_state.get(key)
-            if existing is None or len(existing) != len(expected):
-                st.session_state[key] = expected
-                return st.session_state[key]
+        def build_third_place_round(sf_round_df):
+            losers = []
+            for _, row in sf_round_df.iterrows():
+                if not row["Winner"]:
+                    continue
+                loser = row["Team A"] if row["Winner"] == row["Team B"] else row["Team B"]
+                losers.append(loser)
+            if len(losers) != 2:
+                return pd.DataFrame(columns=["Match", "Team A", "Team B", "Status", "Winner"])
+            return pd.DataFrame([{
+                "Match": "3rd Place",
+                "Team A": losers[0],
+                "Team B": losers[1],
+                "Status": "Upcoming",
+                "Winner": ""
+            }])
 
-            matchup_cols = ["Match", "Team A", "Team B"]
-            current_matchups = existing[matchup_cols].reset_index(drop=True)
-            expected_matchups = expected[matchup_cols].reset_index(drop=True)
-            if not current_matchups.equals(expected_matchups):
-                st.session_state[key] = expected
-            return st.session_state[key]
-
-        st.session_state.r32 = render_round(st.session_state.r32, "🥊 ROUND OF 32", "r32", interactive=True)
+        r32 = restore_bracket_round(expected_r32, saved_bracket)
+        r32 = render_round(r32, "🥊 ROUND OF 32", "r32", interactive=True)
+        save_bracket_round(r32)
 
         # ── ROUND OF 16 ───────────────────────────────────────────────────
-        r32_complete = st.session_state.r32["Winner"].ne("").all()
+        r32_complete = r32["Winner"].ne("").all()
         if r32_complete:
-            st.session_state.r16 = sync_round_state("r16", st.session_state.r32)
-            st.session_state.r16 = render_round(st.session_state.r16, "⚔️ ROUND OF 16", "r16", interactive=True)
-            r16_source = st.session_state.r16
+            r16 = restore_bracket_round(advance_round(r32), saved_bracket)
+            r16 = render_round(r16, "⚔️ ROUND OF 16", "r16", interactive=True)
+            save_bracket_round(r16)
+            r16_source = r16
         else:
-            render_round(advance_round(st.session_state.r32), "⚔️ ROUND OF 16", "r16_preview", interactive=False)
+            render_round(advance_round(r32), "⚔️ ROUND OF 16", "r16_preview", interactive=False)
             st.caption("Complete all Round of 32 winners to populate the Round of 16.")
-            r16_source = advance_round(st.session_state.r32)
+            r16_source = advance_round(r32)
 
         # ── QUARTERFINALS ─────────────────────────────────────────────
-        r16_complete = r32_complete and st.session_state.r16["Winner"].ne("").all()
+        r16_complete = r32_complete and len(r16_source) > 0 and r16_source["Winner"].ne("").all()
         if r16_complete:
-            st.session_state.qf = sync_round_state("qf", st.session_state.r16)
-            st.session_state.qf = render_round(st.session_state.qf, "🏅 QUARTERFINALS", "qf", interactive=True)
-            qf_source = st.session_state.qf
+            qf = restore_bracket_round(advance_round(r16_source), saved_bracket)
+            qf = render_round(qf, "🏅 QUARTERFINALS", "qf", interactive=True)
+            save_bracket_round(qf)
+            qf_source = qf
         else:
             render_round(advance_round(r16_source), "🏅 QUARTERFINALS", "qf_preview", interactive=False)
             st.caption("Complete all Round of 16 winners to populate the Quarterfinals.")
             qf_source = advance_round(r16_source)
 
         # ── SEMIFINALS ────────────────────────────────────────────
-        qf_complete = r16_complete and st.session_state.qf["Winner"].ne("").all()
+        qf_complete = r16_complete and len(qf_source) > 0 and qf_source["Winner"].ne("").all()
         if qf_complete:
-            st.session_state.sf = sync_round_state("sf", st.session_state.qf)
-            st.session_state.sf = render_round(st.session_state.sf, "🔥 SEMIFINALS", "sf", interactive=True)
-            sf_source = st.session_state.sf
+            sf = restore_bracket_round(advance_round(qf_source), saved_bracket)
+            sf = render_round(sf, "🔥 SEMIFINALS", "sf", interactive=True)
+            save_bracket_round(sf)
+            sf_source = sf
         else:
             render_round(advance_round(qf_source), "🔥 SEMIFINALS", "sf_preview", interactive=False)
             st.caption("Complete all Quarterfinal winners to populate the Semifinals.")
             sf_source = advance_round(qf_source)
 
         # ── FINAL ─────────────────────────────────────────────────
-        sf_complete = qf_complete and st.session_state.sf["Winner"].ne("").all()
+        sf_complete = qf_complete and len(sf_source) > 0 and sf_source["Winner"].ne("").all()
         if sf_complete:
-            # Build 3rd place match from SF losers
-            if "third_place" not in st.session_state or len(st.session_state.get("third_place", [])) == 0:
-                sf_losers = []
-                for _, row in st.session_state.sf.iterrows():
-                    loser = row["Team A"] if row["Winner"] == row["Team B"] else row["Team B"]
-                    sf_losers.append(loser)
-                if len(sf_losers) == 2:
-                    st.session_state.third_place = pd.DataFrame([{
-                        "Match": "3rd Place",
-                        "Team A": sf_losers[0],
-                        "Team B": sf_losers[1],
-                        "Status": "Upcoming",
-                        "Winner": ""
-                    }])
-
-            if "third_place" in st.session_state:
-                st.session_state.third_place = render_round(st.session_state.third_place, "🥉 3RD PLACE PLAYOFF", "third_place", interactive=True)
-                third_winner = st.session_state.third_place["Winner"].iloc[0] if st.session_state.third_place["Winner"].iloc[0] else None
+            third_place = restore_bracket_round(build_third_place_round(sf_source), saved_bracket)
+            if len(third_place) > 0:
+                third_place = render_round(third_place, "🥉 3RD PLACE PLAYOFF", "third_place", interactive=True)
+                save_bracket_round(third_place)
+                third_winner = third_place["Winner"].iloc[0] if third_place["Winner"].iloc[0] else None
                 if third_winner:
                     st.markdown(f"""
                     <div style='text-align:center;padding:1rem;background:linear-gradient(135deg,#1a1a00,#2a2a10);border:2px solid #CD7F32;border-radius:16px;margin-top:0.5rem'>
@@ -1233,10 +1211,11 @@ with tab3:
                         <div style='color:#8a9ab5;font-size:0.9rem;margin-top:0.3rem'>🥉 3RD PLACE</div>
                     </div>""", unsafe_allow_html=True)
 
-            st.session_state.final = sync_round_state("final", st.session_state.sf)
-            st.session_state.final = render_round(st.session_state.final, "🏆 FINAL", "final", interactive=True)
+            final = restore_bracket_round(advance_round(sf_source), saved_bracket)
+            final = render_round(final, "🏆 FINAL", "final", interactive=True)
+            save_bracket_round(final)
 
-            final_winner = st.session_state.final["Winner"].iloc[0] if len(st.session_state.final) and st.session_state.final["Winner"].iloc[0] else None
+            final_winner = final["Winner"].iloc[0] if len(final) and final["Winner"].iloc[0] else None
             if final_winner:
                 st.balloons()
                 st.markdown(f"""
@@ -1250,8 +1229,9 @@ with tab3:
             st.caption("Complete all Semifinal winners to populate the 3rd Place Playoff and Final.")
 
         if st.button("🔄 Reset Bracket", type="secondary"):
-            for key in ["r32", "r16", "qf", "sf", "third_place", "final"]:
-                if key in st.session_state:
+            clear_bracket()
+            for key in list(st.session_state.keys()):
+                if key.startswith(("r32_", "r16_", "qf_", "sf_", "third_place_", "final_")):
                     del st.session_state[key]
             st.rerun()
 
@@ -1433,7 +1413,7 @@ with tab7:
         prediction_match_ids = prediction_match_catalog["Match ID"].tolist()
 
         # Score existing predictions
-        st.session_state.predictions = score_predictions(st.session_state.predictions, prediction_match_catalog)
+        st.session_state.predictions = refresh_prediction_scores(st.session_state.predictions, prediction_match_catalog)
 
         # ── UPCOMING MATCHES TO PREDICT ───────────────────────────────────────
         st.markdown(t("pick_winners", lang))
@@ -1481,7 +1461,8 @@ with tab7:
                                        label_visibility="collapsed")
 
                     if pick != pick_placeholder and pick != already_picked:
-                        save_prediction(player, match_id, pick)
+                        correct = prediction_result_for_pick(prediction_match_catalog, match_id, pick)
+                        save_prediction(player, match_id, pick, correct=correct)
                         st.session_state.predictions = st.session_state.predictions[
                             ~((st.session_state.predictions["Player"] == player) &
                               (st.session_state.predictions["Match ID"] == match_id))
@@ -1490,7 +1471,7 @@ with tab7:
                             "Player": player,
                             "Match ID": match_id,
                             "Predicted Winner": pick,
-                            "Correct": ""
+                            "Correct": correct
                         }])
                         st.session_state.predictions = pd.concat(
                             [st.session_state.predictions, new_row], ignore_index=True
@@ -1535,7 +1516,8 @@ with tab7:
                 )
 
                 if pick != pick_placeholder and pick != already_picked:
-                    save_prediction(player, match_id, pick)
+                    correct = prediction_result_for_pick(prediction_match_catalog, match_id, pick)
+                    save_prediction(player, match_id, pick, correct=correct)
                     st.session_state.predictions = st.session_state.predictions[
                         ~((st.session_state.predictions["Player"] == player) &
                           (st.session_state.predictions["Match ID"] == match_id))
@@ -1544,7 +1526,7 @@ with tab7:
                         "Player": player,
                         "Match ID": match_id,
                         "Predicted Winner": pick,
-                        "Correct": ""
+                        "Correct": correct
                     }])
                     st.session_state.predictions = pd.concat(
                         [st.session_state.predictions, new_row], ignore_index=True
@@ -1573,11 +1555,12 @@ with tab7:
     prediction_match_catalog = build_prediction_match_catalog(st.session_state.matches)
     prediction_match_labels = build_prediction_match_labels(prediction_match_catalog)
     prediction_match_ids = prediction_match_catalog["Match ID"].tolist()
-    st.session_state.predictions = score_predictions(st.session_state.predictions, prediction_match_catalog)
+    st.session_state.predictions = refresh_prediction_scores(st.session_state.predictions, prediction_match_catalog)
+    active_predictions = filter_predictions_to_catalog(st.session_state.predictions, prediction_match_catalog)
 
     # ── LEADERBOARD ───────────────────────────────────────────────────────
     st.markdown(t("leaderboard", lang))
-    lb = get_leaderboard(st.session_state.predictions)
+    lb = get_leaderboard(active_predictions)
     if len(lb) == 0:
         st.info(t("leaderboard_empty", lang))
     else:
@@ -1598,9 +1581,7 @@ with tab7:
 
     # ── ALL PLAYERS PREDICTIONS GRID ──────────────────────────────────────
     st.markdown(t("everyone_picks", lang))
-    all_preds = st.session_state.predictions[
-        st.session_state.predictions["Match ID"].isin(prediction_match_ids)
-    ].copy()
+    all_preds = active_predictions.copy()
     if len(all_preds) == 0:
         st.info(t("no_predictions", lang))
     else:

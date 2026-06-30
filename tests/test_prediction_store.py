@@ -60,18 +60,17 @@ def test_save_predictions_replaces_store_contents(tmp_path):
     ]
 
 
-def test_ensure_predictions_repairs_required_pick(tmp_path):
+def test_save_prediction_persists_correct_marker(tmp_path):
     db_path = tmp_path / "predictions.sqlite3"
 
-    assert hasattr(prediction_store, "ensure_predictions")
-    prediction_store.ensure_predictions([("Ralph", 1, "Mexico")], db_path=db_path)
+    save_prediction("Ralph", 1002, "Brazil", correct="✅", db_path=db_path)
 
     loaded = load_predictions(db_path=db_path)
     assert loaded.to_dict("records") == [
         {
             "Player": "Ralph",
-            "Match ID": 1,
-            "Predicted Winner": "Mexico",
-            "Correct": "",
+            "Match ID": 1002,
+            "Predicted Winner": "Brazil",
+            "Correct": "✅",
         }
     ]

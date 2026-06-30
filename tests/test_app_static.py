@@ -176,7 +176,7 @@ def test_live_api_today_matches_include_schedule_fallbacks():
 
 def test_prediction_game_orders_matches_by_kickoff_datetime():
     assert "upcoming = sort_matches_by_kickoff(upcoming)" in SOURCE
-    assert "match_labels = sort_matches_by_kickoff(match_labels)" in SOURCE
+    assert "group_matches = sort_matches_by_kickoff(group_matches)" in SOURCE
     assert 'grid.sort_values(["Date", "Match ID"])' not in SOURCE
 
 
@@ -218,13 +218,9 @@ def test_shared_prediction_views_do_not_require_player_name():
     assert not shared_line.startswith("        # Refresh persisted predictions before shared views")
 
 
-def test_ralph_mexico_pick_is_repaired_before_predictions_load():
-    assert 'REQUIRED_PREDICTIONS = [("Ralph", 1, "Mexico")]' in SOURCE
-    assert "ensure_predictions(REQUIRED_PREDICTIONS)" in SOURCE
-    assert (
-        SOURCE.index("ensure_predictions(REQUIRED_PREDICTIONS)")
-        < SOURCE.index("st.session_state.predictions = load_predictions()")
-    )
+def test_legacy_required_prediction_injection_is_removed():
+    assert "REQUIRED_PREDICTIONS" not in SOURCE
+    assert "ensure_predictions(" not in SOURCE
 
 
 def test_prediction_selectboxes_have_non_empty_accessible_labels():
@@ -238,8 +234,8 @@ def test_auto_sync_writes_scores_as_strings():
 
 
 def test_bracket_keeps_future_rounds_visible_as_previews():
-    assert 'st.session_state.r16 = render_round(st.session_state.r16, "⚔️ ROUND OF 16", "r16", interactive=True)' in SOURCE
-    assert 'render_round(advance_round(st.session_state.r32), "⚔️ ROUND OF 16", "r16_preview", interactive=False)' in SOURCE
+    assert 'r16 = render_round(r16, "⚔️ ROUND OF 16", "r16", interactive=True)' in SOURCE
+    assert 'render_round(advance_round(r32), "⚔️ ROUND OF 16", "r16_preview", interactive=False)' in SOURCE
     assert 'Complete all Round of 32 winners to populate the Round of 16.' in SOURCE
 
 
@@ -259,5 +255,16 @@ def test_predictions_page_has_separate_round_of_32_section():
 
 
 def test_prediction_views_hide_finished_group_matches_and_score_round_of_32():
-    assert 'st.session_state.predictions = score_predictions(st.session_state.predictions, prediction_match_catalog)' in SOURCE
+    assert 'st.session_state.predictions = refresh_prediction_scores(st.session_state.predictions, prediction_match_catalog)' in SOURCE
     assert 'prediction_match_labels = build_prediction_match_labels(prediction_match_catalog)' in SOURCE
+
+
+def test_bracket_page_uses_persisted_store():
+    assert "from bracket_store import clear_bracket, load_bracket, restore_bracket_round, save_bracket_round" in SOURCE
+    assert "saved_bracket = load_bracket()" in SOURCE
+    assert "clear_bracket()" in SOURCE
+
+
+def test_leaderboard_only_counts_active_prediction_matches():
+    assert 'active_predictions = filter_predictions_to_catalog(st.session_state.predictions, prediction_match_catalog)' in SOURCE
+    assert 'lb = get_leaderboard(active_predictions)' in SOURCE
