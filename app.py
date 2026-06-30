@@ -1484,22 +1484,25 @@ with tab7:
         for _, match in r32_matches.iterrows():
             match_id = match["Match ID"]
             finished = match["Status"] == "Finished"
+            r32_locked = is_match_locked(match)
             existing = st.session_state.predictions[
                 (st.session_state.predictions["Player"] == player) &
                 (st.session_state.predictions["Match ID"] == match_id)
             ]
             already_picked = existing.iloc[0]["Predicted Winner"] if len(existing) > 0 else None
+            status_badge = "✅ Final" if finished else ("🔒 Locked" if r32_locked else "🟢 Open")
+            status_color = "#48D8A0" if finished or not r32_locked else "#FF6B6B"
 
             st.markdown(f"""
             <div class='match-card' style='margin-bottom:0.3rem'>
                 <span class='group-badge' style='background:#F7C94822;color:#F7C948;border:1px solid #F7C94844'>R32</span>
                 <span style='color:#5a6a8a;font-size:0.8rem'>Round of 32</span>
                 <span style='font-weight:700'>{flag(match["Team A"])} {match["Team A"]} vs {match["Team B"]} {flag(match["Team B"])}</span>
-                <span style='color:#48D8A0;font-size:0.75rem'>{"✅ Final" if finished else "🟢 Open"}</span>
+                <span style='color:{status_color};font-size:0.75rem'>{status_badge}</span>
                 {"<span style='color:#F7C948;font-size:0.8rem'>" + t("your_pick", lang) + ": " + already_picked + "</span>" if already_picked else ""}
             </div>""", unsafe_allow_html=True)
 
-            if not finished:
+            if not finished and not r32_locked:
                 pick_placeholder = t("pick_winner_placeholder", lang)
                 knockout_options = [pick_placeholder, match["Team A"], match["Team B"]]
                 current_idx = 0

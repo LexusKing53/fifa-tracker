@@ -259,6 +259,12 @@ def test_prediction_views_hide_finished_group_matches_and_score_round_of_32():
     assert 'prediction_match_labels = build_prediction_match_labels(prediction_match_catalog)' in SOURCE
 
 
+def test_round_of_32_prediction_cards_can_show_final_locked_or_open():
+    assert 'r32_locked = is_match_locked(match)' in SOURCE
+    assert '"✅ Final" if finished else ("🔒 Locked" if r32_locked else "🟢 Open")' in SOURCE
+    assert "if not finished and not r32_locked:" in SOURCE
+
+
 def test_bracket_page_uses_persisted_store():
     assert "from bracket_store import clear_bracket, load_bracket, restore_bracket_round, save_bracket_round" in SOURCE
     assert "saved_bracket = load_bracket()" in SOURCE
