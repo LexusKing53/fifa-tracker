@@ -57,6 +57,10 @@ def test_prediction_catalog_marks_all_completed_round_of_32_matches_as_finished(
     assert catalog.loc[1003, "Winner"] == "Paraguay"
     assert catalog.loc[1004, "Status"] == "Finished"
     assert catalog.loc[1004, "Winner"] == "Morocco"
+    assert catalog.loc[1005, "Status"] == "Finished"
+    assert catalog.loc[1005, "Winner"] == "Norway"
+    assert catalog.loc[1006, "Status"] == "Finished"
+    assert catalog.loc[1006, "Winner"] == "France"
 
 
 def test_prediction_catalog_keeps_round_of_32_kickoff_data_for_locking():
