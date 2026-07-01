@@ -4,7 +4,7 @@ from pathlib import Path
 from datetime import datetime
 import html
 import requests
-from bracket_store import apply_live_match_results, clear_bracket, load_bracket, restore_bracket_round, save_bracket_round
+import bracket_store
 from fixture_utils import sort_matches_by_kickoff, today_et, todays_matches_for_display
 from match_lock import is_match_locked
 from match_results import apply_known_final_results, build_standings, compute_match_outcome
@@ -12,6 +12,12 @@ from prediction_logic import filter_predictions_to_catalog, prediction_result_fo
 from prediction_matches import ROUND_OF_32_PREDICTION_MATCHES, build_prediction_match_catalog
 from prediction_store import load_predictions, save_prediction, save_predictions
 from translations import LANGUAGES, t
+
+clear_bracket = bracket_store.clear_bracket
+load_bracket = bracket_store.load_bracket
+restore_bracket_round = bracket_store.restore_bracket_round
+save_bracket_round = bracket_store.save_bracket_round
+apply_live_match_results = getattr(bracket_store, "apply_live_match_results", lambda round_df, live_matches: round_df)
 
 try:
     from streamlit_autorefresh import st_autorefresh

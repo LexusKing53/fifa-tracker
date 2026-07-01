@@ -266,7 +266,8 @@ def test_round_of_32_prediction_cards_can_show_final_locked_or_open():
 
 
 def test_bracket_page_uses_persisted_store():
-    assert "from bracket_store import apply_live_match_results, clear_bracket, load_bracket, restore_bracket_round, save_bracket_round" in SOURCE
+    assert "import bracket_store" in SOURCE
+    assert 'apply_live_match_results = getattr(bracket_store, "apply_live_match_results", lambda round_df, live_matches: round_df)' in SOURCE
     assert "saved_bracket = load_bracket()" in SOURCE
     assert "clear_bracket()" in SOURCE
 
