@@ -1,6 +1,12 @@
 import pandas as pd
 
-from bracket_store import clear_bracket, load_bracket, restore_bracket_round, save_bracket_round
+from bracket_store import (
+    apply_live_match_results,
+    clear_bracket,
+    load_bracket,
+    restore_bracket_round,
+    save_bracket_round,
+)
 
 
 def test_save_bracket_round_survives_reload(tmp_path):
@@ -100,3 +106,61 @@ def test_clear_bracket_deletes_saved_rows(tmp_path):
 
     loaded = load_bracket(db_path=db_path)
     assert loaded.empty
+
+
+def test_apply_live_match_results_overrides_saved_wrong_winner_for_finished_match():
+    round_df = pd.DataFrame(
+        [
+            {
+                "Match": "R32-1",
+                "Match ID": 1001,
+                "Team A": "South Africa",
+                "Team B": "Canada",
+                "Status": "Upcoming",
+                "Winner": "South Africa",
+            }
+        ]
+    )
+    live_matches = pd.DataFrame(
+        [
+            {
+                "Match ID": 1001,
+                "Status": "Finished",
+                "Winner": "Canada",
+            }
+        ]
+    )
+
+    updated = apply_live_match_results(round_df, live_matches)
+
+    assert updated.iloc[0]["Status"] == "Finished"
+    assert updated.iloc[0]["Winner"] == "Canada"
+
+
+def test_apply_live_match_results_keeps_open_pick_for_unfinished_match():
+    round_df = pd.DataFrame(
+        [
+            {
+                "Match": "R32-5",
+                "Match ID": 1005,
+                "Team A": "Ivory Coast",
+                "Team B": "Norway",
+                "Status": "Upcoming",
+                "Winner": "Norway",
+            }
+        ]
+    )
+    live_matches = pd.DataFrame(
+        [
+            {
+                "Match ID": 1005,
+                "Status": "Upcoming",
+                "Winner": "",
+            }
+        ]
+    )
+
+    updated = apply_live_match_results(round_df, live_matches)
+
+    assert updated.iloc[0]["Status"] == "Upcoming"
+    assert updated.iloc[0]["Winner"] == "Norway"

@@ -4,12 +4,12 @@ from pathlib import Path
 from datetime import datetime
 import html
 import requests
-from bracket_store import clear_bracket, load_bracket, restore_bracket_round, save_bracket_round
+from bracket_store import apply_live_match_results, clear_bracket, load_bracket, restore_bracket_round, save_bracket_round
 from fixture_utils import sort_matches_by_kickoff, today_et, todays_matches_for_display
 from match_lock import is_match_locked
 from match_results import apply_known_final_results, build_standings, compute_match_outcome
 from prediction_logic import filter_predictions_to_catalog, prediction_result_for_pick, score_predictions
-from prediction_matches import build_prediction_match_catalog
+from prediction_matches import ROUND_OF_32_PREDICTION_MATCHES, build_prediction_match_catalog
 from prediction_store import load_predictions, save_prediction, save_predictions
 from translations import LANGUAGES, t
 
@@ -598,25 +598,9 @@ def get_qualifiers(standings):
     return pd.concat([top_two, thirds], ignore_index=True)
 
 def build_round_of_32(qualifiers):
-    pairs = [
-        {"Match": "R32-1", "Team A": "South Africa", "Team B": "Canada", "Status": "Upcoming", "Winner": ""},
-        {"Match": "R32-2", "Team A": "Brazil", "Team B": "Japan", "Status": "Upcoming", "Winner": ""},
-        {"Match": "R32-3", "Team A": "Germany", "Team B": "Paraguay", "Status": "Upcoming", "Winner": ""},
-        {"Match": "R32-4", "Team A": "Netherlands", "Team B": "Morocco", "Status": "Upcoming", "Winner": ""},
-        {"Match": "R32-5", "Team A": "Ivory Coast", "Team B": "Norway", "Status": "Upcoming", "Winner": ""},
-        {"Match": "R32-6", "Team A": "France", "Team B": "Sweden", "Status": "Upcoming", "Winner": ""},
-        {"Match": "R32-7", "Team A": "Mexico", "Team B": "Ecuador", "Status": "Upcoming", "Winner": ""},
-        {"Match": "R32-8", "Team A": "England", "Team B": "DR Congo", "Status": "Upcoming", "Winner": ""},
-        {"Match": "R32-9", "Team A": "Belgium", "Team B": "Senegal", "Status": "Upcoming", "Winner": ""},
-        {"Match": "R32-10", "Team A": "United States", "Team B": "Bosnia and Herzegovina", "Status": "Upcoming", "Winner": ""},
-        {"Match": "R32-11", "Team A": "Switzerland", "Team B": "Algeria", "Status": "Upcoming", "Winner": ""},
-        {"Match": "R32-12", "Team A": "Spain", "Team B": "Austria", "Status": "Upcoming", "Winner": ""},
-        {"Match": "R32-13", "Team A": "Argentina", "Team B": "Cape Verde", "Status": "Upcoming", "Winner": ""},
-        {"Match": "R32-14", "Team A": "Colombia", "Team B": "Ghana", "Status": "Upcoming", "Winner": ""},
-        {"Match": "R32-15", "Team A": "Portugal", "Team B": "Croatia", "Status": "Upcoming", "Winner": ""},
-        {"Match": "R32-16", "Team A": "Australia", "Team B": "Egypt", "Status": "Upcoming", "Winner": ""},
-    ]
-    return pd.DataFrame(pairs)
+    round_df = pd.DataFrame(ROUND_OF_32_PREDICTION_MATCHES).copy()
+    round_df["Match"] = [f"R32-{index + 1}" for index in range(len(round_df))]
+    return round_df[["Match", "Match ID", "Team A", "Team B", "Status", "Winner"]]
 
 
 def build_prediction_match_labels(match_catalog):
@@ -1133,9 +1117,12 @@ with tab3:
                     current = row["Winner"] if row["Winner"] else "—"
                     if current not in options:
                         current = "—"
-                    if interactive:
+                    is_finished = str(row.get("Status", "")).strip() == "Finished"
+                    if interactive and not is_finished:
                         choice = st.selectbox("Winner", options, index=options.index(current), key=f"{key}_{i}", label_visibility="collapsed")
                         updated.at[idx, "Winner"] = "" if choice == "—" else choice
+                    elif interactive and is_finished:
+                        st.caption("Final result")
             return updated
 
         def build_third_place_round(sf_round_df):
@@ -1155,7 +1142,9 @@ with tab3:
                 "Winner": ""
             }])
 
+        r32_live_matches = pd.DataFrame(ROUND_OF_32_PREDICTION_MATCHES)
         r32 = restore_bracket_round(expected_r32, saved_bracket)
+        r32 = apply_live_match_results(r32, r32_live_matches)
         r32 = render_round(r32, "🥊 ROUND OF 32", "r32", interactive=True)
         save_bracket_round(r32)
 

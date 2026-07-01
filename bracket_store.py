@@ -92,3 +92,32 @@ def restore_bracket_round(expected_round, saved_bracket):
             restored.at[idx, "Winner"] = winner
 
     return restored
+
+
+def apply_live_match_results(round_df, live_matches):
+    updated = round_df.copy()
+    if len(updated) == 0 or len(live_matches) == 0:
+        return updated
+    if "Match ID" not in updated.columns or "Match ID" not in live_matches.columns:
+        return updated
+
+    live_by_match_id = live_matches.drop_duplicates(subset=["Match ID"]).set_index("Match ID")
+    for idx, row in updated.iterrows():
+        match_id = row["Match ID"]
+        if match_id not in live_by_match_id.index:
+            continue
+
+        live_row = live_by_match_id.loc[match_id]
+        status = str(live_row.get("Status", "")).strip()
+        winner = str(live_row.get("Winner", "")).strip()
+
+        if status:
+            updated.at[idx, "Status"] = status
+
+        if status != "Finished":
+            continue
+
+        if winner in {str(row["Team A"]), str(row["Team B"])}:
+            updated.at[idx, "Winner"] = winner
+
+    return updated

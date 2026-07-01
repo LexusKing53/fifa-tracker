@@ -240,14 +240,14 @@ def test_bracket_keeps_future_rounds_visible_as_previews():
 
 
 def test_round_of_32_uses_hardcoded_matchups():
-    assert '{"Match": "R32-2", "Team A": "Brazil", "Team B": "Japan", "Status": "Upcoming", "Winner": ""}' in SOURCE
-    assert '{"Match": "R32-4", "Team A": "Netherlands", "Team B": "Morocco", "Status": "Upcoming", "Winner": ""}' in SOURCE
-    assert '{"Match": "R32-6", "Team A": "France", "Team B": "Sweden", "Status": "Upcoming", "Winner": ""}' in SOURCE
+    assert "ROUND_OF_32_PREDICTION_MATCHES" in SOURCE
+    assert 'round_df = pd.DataFrame(ROUND_OF_32_PREDICTION_MATCHES).copy()' in SOURCE
+    assert 'round_df["Match"] = [f"R32-{index + 1}" for index in range(len(round_df))]' in SOURCE
     assert 'pairs.append({"Match": f"R32-{i//2+1}", "Team A": q.loc[i, "Team"], "Team B": q.loc[i+1, "Team"], "Status": "Upcoming", "Winner": ""})' not in SOURCE
 
 
 def test_predictions_page_has_separate_round_of_32_section():
-    assert "from prediction_matches import build_prediction_match_catalog" in SOURCE
+    assert "from prediction_matches import ROUND_OF_32_PREDICTION_MATCHES, build_prediction_match_catalog" in SOURCE
     assert 'prediction_match_catalog = build_prediction_match_catalog(st.session_state.matches)' in SOURCE
     assert 'r32_matches = prediction_match_catalog[prediction_match_catalog["Group"] == "R32"].copy()' in SOURCE
     assert 'st.markdown("### Round of 32 Predictions")' in SOURCE
@@ -266,9 +266,14 @@ def test_round_of_32_prediction_cards_can_show_final_locked_or_open():
 
 
 def test_bracket_page_uses_persisted_store():
-    assert "from bracket_store import clear_bracket, load_bracket, restore_bracket_round, save_bracket_round" in SOURCE
+    assert "from bracket_store import apply_live_match_results, clear_bracket, load_bracket, restore_bracket_round, save_bracket_round" in SOURCE
     assert "saved_bracket = load_bracket()" in SOURCE
     assert "clear_bracket()" in SOURCE
+
+
+def test_bracket_page_syncs_finished_round_of_32_results_before_advancing():
+    assert "apply_live_match_results" in SOURCE
+    assert "r32 = apply_live_match_results(r32, r32_live_matches)" in SOURCE
 
 
 def test_leaderboard_only_counts_active_prediction_matches():
