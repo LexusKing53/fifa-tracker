@@ -10,6 +10,7 @@ from match_lock import is_match_locked
 from match_results import apply_known_final_results, build_standings, compute_match_outcome
 from prediction_logic import filter_predictions_to_catalog, prediction_result_for_pick, score_predictions
 from prediction_matches import ROUND_OF_32_PREDICTION_MATCHES, build_prediction_match_catalog
+from seed_restore import restore_bracket_store_if_missing, restore_prediction_store_if_missing
 from prediction_store import load_predictions, save_prediction, save_predictions
 from translations import LANGUAGES, t
 
@@ -777,6 +778,8 @@ def get_leaderboard(predictions):
     lb["Accuracy"] = (lb["Correct"] / lb["Predicted"] * 100).round(1).astype(str) + "%"
     return lb.sort_values("Points", ascending=False).reset_index(drop=True)
 
+DB_WAS_MISSING_ON_BOOT = not Path("predictions.sqlite3").exists()
+
 if "predictions" not in st.session_state:
     st.session_state.predictions = load_predictions()
 
@@ -785,6 +788,19 @@ if "player_name" not in st.session_state:
 
 if "matches" not in st.session_state:
     st.session_state.matches = ensure_columns(load_matches())
+
+st.session_state.predictions = restore_prediction_store_if_missing(
+    st.session_state.predictions,
+    should_seed=DB_WAS_MISSING_ON_BOOT,
+    save_predictions_fn=save_predictions,
+    load_predictions_fn=load_predictions,
+)
+restore_bracket_store_if_missing(
+    load_bracket(),
+    should_seed=DB_WAS_MISSING_ON_BOOT,
+    save_bracket_round_fn=save_bracket_round,
+    load_bracket_fn=load_bracket,
+)
 
 if st_autorefresh:
     st_autorefresh(interval=60000, key="refresh")
@@ -811,23 +827,23 @@ st.markdown("""
 <style>
 @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
 @keyframes trophyGlow { 0%,100%{filter:drop-shadow(0 0 6px #f7c94888)} 50%{filter:drop-shadow(0 0 18px #f7c948cc)} }
-.block-container { padding-top:1.25rem !important; }
-.spin-ball { display:inline-block; animation:spin 2s linear infinite; font-size:3.5rem; line-height:1; }
+.block-container { padding-top:0.4rem !important; }
+.spin-ball { display:inline-block; animation:spin 2s linear infinite; font-size:2.5rem; line-height:1; }
 .trophy-img { animation:trophyGlow 3s ease-in-out infinite; }
-.hero-shell { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.6rem; padding:0.1rem 0 0.75rem; text-align:center; }
+.hero-shell { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.35rem; padding:0 0 0.35rem; text-align:center; }
 .hero-title-wrap { display:flex; flex-direction:column; align-items:center; text-align:center; gap:0.45rem; min-width:0; }
 .hero-title-line { display:flex; align-items:center; justify-content:center; gap:1rem; }
 .hero-title { font-size:clamp(2rem, 5vw, 3.5rem); margin:0; color:#F7C948; font-family:Bebas Neue,sans-serif; letter-spacing:3px; white-space:normal; overflow-wrap:normal; }
 .hero-updated { color:#5a6a8a; margin:0; font-size:0.85rem; }
-.trophy-img svg { width:clamp(150px, 22vw, 260px); height:auto; display:block; }
+.trophy-img svg { width:clamp(110px, 14vw, 170px); height:auto; display:block; }
 @media (max-width: 640px) {
-    .hero-shell { align-items:center; gap:0.65rem; }
+    .hero-shell { align-items:center; gap:0.4rem; }
     .hero-title-wrap { gap:0.4rem; }
     .hero-title-line { gap:0.5rem; }
     .hero-title { font-size:2rem; line-height:0.95; letter-spacing:1px; max-width:12ch; }
     .hero-updated { font-size:0.72rem; }
-    .spin-ball { font-size:1.6rem; }
-    .trophy-img svg { width:96px; }
+    .spin-ball { font-size:1.35rem; }
+    .trophy-img svg { width:78px; }
 }
 </style>
 <div class='hero-shell'>

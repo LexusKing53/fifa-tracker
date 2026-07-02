@@ -85,8 +85,13 @@ def test_trophy_is_centered_above_title_in_hero():
 
 
 def test_hero_starts_near_top_of_page():
-    assert ".block-container { padding-top:1.25rem !important;" in SOURCE
-    assert ".hero-shell { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.6rem; padding:0.1rem 0 0.75rem;" in SOURCE
+    assert ".block-container { padding-top:0.4rem !important;" in SOURCE
+    assert ".hero-shell { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.35rem; padding:0 0 0.35rem;" in SOURCE
+
+
+def test_hero_uses_compact_trophy_sizing():
+    assert ".trophy-img svg { width:clamp(110px, 14vw, 170px); height:auto; display:block; }" in SOURCE
+    assert ".spin-ball { display:inline-block; animation:spin 2s linear infinite; font-size:2.5rem; line-height:1; }" in SOURCE
 
 
 def test_group_fixture_metric_is_not_labeled_as_total_upcoming():
