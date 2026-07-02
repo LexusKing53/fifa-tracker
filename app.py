@@ -778,8 +778,6 @@ def get_leaderboard(predictions):
     lb["Accuracy"] = (lb["Correct"] / lb["Predicted"] * 100).round(1).astype(str) + "%"
     return lb.sort_values("Points", ascending=False).reset_index(drop=True)
 
-DB_WAS_MISSING_ON_BOOT = not Path("predictions.sqlite3").exists()
-
 if "predictions" not in st.session_state:
     st.session_state.predictions = load_predictions()
 
@@ -791,15 +789,17 @@ if "matches" not in st.session_state:
 
 st.session_state.predictions = restore_prediction_store_if_missing(
     st.session_state.predictions,
-    should_seed=DB_WAS_MISSING_ON_BOOT,
+    should_seed=True,
     save_predictions_fn=save_predictions,
     load_predictions_fn=load_predictions,
+    db_path=Path("predictions.sqlite3"),
 )
 restore_bracket_store_if_missing(
     load_bracket(),
-    should_seed=DB_WAS_MISSING_ON_BOOT,
+    should_seed=True,
     save_bracket_round_fn=save_bracket_round,
     load_bracket_fn=load_bracket,
+    db_path=Path("predictions.sqlite3"),
 )
 
 if st_autorefresh:
