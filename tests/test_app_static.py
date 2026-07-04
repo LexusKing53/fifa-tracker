@@ -296,3 +296,7 @@ def test_bracket_page_syncs_finished_round_of_32_results_before_advancing():
 def test_leaderboard_only_counts_active_prediction_matches():
     assert 'active_predictions = filter_predictions_to_catalog(st.session_state.predictions, prediction_match_catalog)' in SOURCE
     assert 'lb = get_leaderboard(active_predictions)' in SOURCE
+
+
+def test_app_does_not_delete_round_of_16_predictions_on_startup():
+    assert "reset_prediction_match_ids_once(" not in SOURCE

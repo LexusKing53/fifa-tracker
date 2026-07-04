@@ -33,6 +33,11 @@ ROUND_OF_16_PAIRINGS = [
 ]
 
 
+ROUND_OF_16_RESULT_OVERRIDES = {
+    2002: {"Status": "Finished", "Winner": "Morocco"},
+}
+
+
 def build_round_of_16_from_round_of_32(round_of_32_df):
     round_of_32 = round_of_32_df.copy()
     if len(round_of_32) == 0:
@@ -53,6 +58,14 @@ def build_round_of_16_from_round_of_32(round_of_32_df):
         right_row = matches_by_id.loc[right_id]
         left_winner = str(left_row.get("Winner", "")).strip()
         right_winner = str(right_row.get("Winner", "")).strip()
+        result_override = ROUND_OF_16_RESULT_OVERRIDES.get(pairing["Match ID"], {})
+        team_a = left_winner or f"Winner R32-{left_id - 1000}"
+        team_b = right_winner or f"Winner R32-{right_id - 1000}"
+        status = str(result_override.get("Status", "Upcoming")).strip() or "Upcoming"
+        winner = str(result_override.get("Winner", "")).strip()
+        if status != "Finished" or winner not in {team_a, team_b}:
+            status = "Upcoming"
+            winner = ""
 
         matches.append(
             {
@@ -61,10 +74,10 @@ def build_round_of_16_from_round_of_32(round_of_32_df):
                 "Group": "R16",
                 "Date": "",
                 "Time": "",
-                "Team A": left_winner or f"Winner R32-{left_id - 1000}",
-                "Team B": right_winner or f"Winner R32-{right_id - 1000}",
-                "Status": "Upcoming",
-                "Winner": "",
+                "Team A": team_a,
+                "Team B": team_b,
+                "Status": status,
+                "Winner": winner,
             }
         )
     return pd.DataFrame(matches)
