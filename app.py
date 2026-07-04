@@ -9,7 +9,11 @@ from fixture_utils import sort_matches_by_kickoff, today_et, todays_matches_for_
 from match_lock import is_match_locked
 from match_results import apply_known_final_results, build_standings, compute_match_outcome
 from prediction_logic import filter_predictions_to_catalog, prediction_result_for_pick, score_predictions
-from prediction_matches import ROUND_OF_32_PREDICTION_MATCHES, build_prediction_match_catalog
+from prediction_matches import (
+    ROUND_OF_32_PREDICTION_MATCHES,
+    build_prediction_match_catalog,
+    build_round_of_16_from_round_of_32,
+)
 from seed_restore import (
     repair_bracket_store_from_seed,
     repair_prediction_store_from_seed,
@@ -628,10 +632,13 @@ def build_prediction_match_labels(match_catalog):
 
 def advance_round(prev_round_df):
     """Takes winners from a round and pairs them into the next round."""
-    winners = list(prev_round_df["Winner"].values)
-    pairs = []
     label_map = {"R32": "R16", "R16": "QF", "QF": "SF", "SF": "F"}
     prefix = prev_round_df["Match"].iloc[0].split("-")[0] if len(prev_round_df) else "R32"
+    if prefix == "R32":
+        return build_round_of_16_from_round_of_32(prev_round_df)
+
+    winners = list(prev_round_df["Winner"].values)
+    pairs = []
     next_prefix = label_map.get(prefix, "Next")
     for i in range(0, len(winners), 2):
         if i + 1 < len(winners):

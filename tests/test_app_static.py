@@ -240,6 +240,9 @@ def test_auto_sync_writes_scores_as_strings():
 
 
 def test_bracket_keeps_future_rounds_visible_as_previews():
+    assert "build_round_of_16_from_round_of_32" in SOURCE
+    assert 'if prefix == "R32":' in SOURCE
+    assert "return build_round_of_16_from_round_of_32(prev_round_df)" in SOURCE
     assert 'r16 = render_round(r16, "⚔️ ROUND OF 16", "r16", interactive=True)' in SOURCE
     assert 'render_round(advance_round(r32), "⚔️ ROUND OF 16", "r16_preview", interactive=False)' in SOURCE
     assert 'Complete all Round of 32 winners to populate the Round of 16.' in SOURCE
@@ -253,7 +256,10 @@ def test_round_of_32_uses_hardcoded_matchups():
 
 
 def test_predictions_page_has_separate_round_of_32_section():
-    assert "from prediction_matches import ROUND_OF_32_PREDICTION_MATCHES, build_prediction_match_catalog" in SOURCE
+    assert "from prediction_matches import (" in SOURCE
+    assert "ROUND_OF_32_PREDICTION_MATCHES" in SOURCE
+    assert "build_prediction_match_catalog" in SOURCE
+    assert "build_round_of_16_from_round_of_32" in SOURCE
     assert 'prediction_match_catalog = build_prediction_match_catalog(st.session_state.matches)' in SOURCE
     assert 'st.markdown("### Round of 32 Predictions")' in SOURCE
     assert 'st.markdown("### Round of 16 Predictions")' in SOURCE

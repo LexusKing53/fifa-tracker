@@ -21,32 +21,61 @@ ROUND_OF_32_PREDICTION_MATCHES = [
 ]
 
 
-def build_round_of_16_prediction_matches():
-    winners = []
-    for index, row in enumerate(ROUND_OF_32_PREDICTION_MATCHES, start=1):
-        winner = str(row.get("Winner", "")).strip()
-        winners.append(winner or f"Winner R32-{index}")
+ROUND_OF_16_PAIRINGS = [
+    {"Match ID": 2001, "Left R32 Match ID": 1003, "Right R32 Match ID": 1006},
+    {"Match ID": 2002, "Left R32 Match ID": 1004, "Right R32 Match ID": 1001},
+    {"Match ID": 2003, "Left R32 Match ID": 1015, "Right R32 Match ID": 1012},
+    {"Match ID": 2004, "Left R32 Match ID": 1002, "Right R32 Match ID": 1005},
+    {"Match ID": 2005, "Left R32 Match ID": 1013, "Right R32 Match ID": 1016},
+    {"Match ID": 2006, "Left R32 Match ID": 1011, "Right R32 Match ID": 1014},
+    {"Match ID": 2007, "Left R32 Match ID": 1010, "Right R32 Match ID": 1009},
+    {"Match ID": 2008, "Left R32 Match ID": 1007, "Right R32 Match ID": 1008},
+]
+
+
+def build_round_of_16_from_round_of_32(round_of_32_df):
+    round_of_32 = round_of_32_df.copy()
+    if len(round_of_32) == 0:
+        return pd.DataFrame(
+            columns=["Match", "Match ID", "Group", "Date", "Time", "Team A", "Team B", "Status", "Winner"]
+        )
+
+    matches_by_id = round_of_32.drop_duplicates(subset=["Match ID"]).set_index("Match ID")
 
     matches = []
-    for pair_index in range(0, len(winners), 2):
-        if pair_index + 1 >= len(winners):
+    for index, pairing in enumerate(ROUND_OF_16_PAIRINGS, start=1):
+        left_id = pairing["Left R32 Match ID"]
+        right_id = pairing["Right R32 Match ID"]
+        if left_id not in matches_by_id.index or right_id not in matches_by_id.index:
             continue
+
+        left_row = matches_by_id.loc[left_id]
+        right_row = matches_by_id.loc[right_id]
+        left_winner = str(left_row.get("Winner", "")).strip()
+        right_winner = str(right_row.get("Winner", "")).strip()
+
         matches.append(
             {
-                "Match ID": 2001 + (pair_index // 2),
+                "Match": f"R16-{index}",
+                "Match ID": pairing["Match ID"],
                 "Group": "R16",
                 "Date": "",
                 "Time": "",
-                "Team A": winners[pair_index],
-                "Team B": winners[pair_index + 1],
+                "Team A": left_winner or f"Winner R32-{left_id - 1000}",
+                "Team B": right_winner or f"Winner R32-{right_id - 1000}",
                 "Status": "Upcoming",
                 "Winner": "",
             }
         )
-    return matches
+    return pd.DataFrame(matches)
+
+
+def build_round_of_16_prediction_matches():
+    round_of_32 = pd.DataFrame(ROUND_OF_32_PREDICTION_MATCHES)
+    return build_round_of_16_from_round_of_32(round_of_32)
 
 
 def build_prediction_match_catalog(group_matches_df):
     r32_matches = pd.DataFrame(ROUND_OF_32_PREDICTION_MATCHES)
-    r16_matches = pd.DataFrame(build_round_of_16_prediction_matches())
+    r16_matches = build_round_of_16_prediction_matches()
     return pd.concat([r32_matches, r16_matches], ignore_index=True)
