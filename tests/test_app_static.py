@@ -180,8 +180,9 @@ def test_live_api_today_matches_include_schedule_fallbacks():
 
 
 def test_prediction_game_orders_matches_by_kickoff_datetime():
-    assert "upcoming = sort_matches_by_kickoff(upcoming)" in SOURCE
-    assert "group_matches = sort_matches_by_kickoff(group_matches)" in SOURCE
+    assert 'round_titles = {"R32": "Round of 32", "R16": "Round of 16"}' in SOURCE
+    assert 'match_labels["Round Order"] = match_labels["Group"].map({"R32": 0, "R16": 1}).fillna(99)' in SOURCE
+    assert 'match_labels = match_labels.sort_values(["Round Order", "Match ID"]).copy()' in SOURCE
     assert 'grid.sort_values(["Date", "Match ID"])' not in SOURCE
 
 
@@ -200,7 +201,7 @@ def test_fixture_cards_show_start_time_with_soon_status():
 
 
 def test_prediction_views_show_start_time():
-    assert "format_match_datetime(match)" in SOURCE
+    assert 'match_labels["Kickoff"] = match_labels["Group"].map(round_titles).fillna("")' in SOURCE
     assert 'prediction_match_labels = build_prediction_match_labels(prediction_match_catalog)' in SOURCE
     assert 'prediction_match_labels[["Match ID", "Team A", "Team B", "Kickoff", "Group", "Match"]]' in SOURCE
     assert 'match_labels = build_prediction_match_labels(prediction_match_catalog)' in SOURCE
@@ -254,20 +255,24 @@ def test_round_of_32_uses_hardcoded_matchups():
 def test_predictions_page_has_separate_round_of_32_section():
     assert "from prediction_matches import ROUND_OF_32_PREDICTION_MATCHES, build_prediction_match_catalog" in SOURCE
     assert 'prediction_match_catalog = build_prediction_match_catalog(st.session_state.matches)' in SOURCE
-    assert 'r32_matches = prediction_match_catalog[prediction_match_catalog["Group"] == "R32"].copy()' in SOURCE
     assert 'st.markdown("### Round of 32 Predictions")' in SOURCE
-    assert 'knockout_options = [pick_placeholder, match["Team A"], match["Team B"]]' in SOURCE
+    assert 'st.markdown("### Round of 16 Predictions")' in SOURCE
+    assert 'knockout_options = [pick_placeholder, match["Team A"], match["Team B"], "Draw"]' in SOURCE
 
 
 def test_prediction_views_hide_finished_group_matches_and_score_round_of_32():
     assert 'st.session_state.predictions = refresh_prediction_scores(st.session_state.predictions, prediction_match_catalog)' in SOURCE
     assert 'prediction_match_labels = build_prediction_match_labels(prediction_match_catalog)' in SOURCE
+    assert 'upcoming = st.session_state.matches[st.session_state.matches["Status"] != "Finished"].copy()' not in SOURCE
 
 
 def test_round_of_32_prediction_cards_can_show_final_locked_or_open():
-    assert 'r32_locked = is_match_locked(match)' in SOURCE
-    assert '"✅ Final" if finished else ("🔒 Locked" if r32_locked else "🟢 Open")' in SOURCE
-    assert "if not finished and not r32_locked:" in SOURCE
+    assert 'locked = is_match_locked(match)' in SOURCE
+    assert '"🏁 Final" if finished else ("🔒 Locked" if locked else "🟢 Open")' in SOURCE
+    assert 'pick_result = existing.iloc[0]["Correct"] if len(existing) > 0 else ""' in SOURCE
+    assert 'result_badge = ""' in SOURCE
+    assert 'if finished and already_picked and pick_result in ("✅", "❌"):' in SOURCE
+    assert "if not finished and not locked:" in SOURCE
 
 
 def test_bracket_page_uses_persisted_store():

@@ -611,18 +611,15 @@ def build_round_of_32(qualifiers):
 
 
 def build_prediction_match_labels(match_catalog):
-    group_matches = match_catalog[match_catalog["Group"] != "R32"].copy()
-    group_matches = sort_matches_by_kickoff(group_matches)
-    group_matches["Kickoff"] = group_matches.apply(format_match_datetime, axis=1)
-
-    r32_matches = match_catalog[match_catalog["Group"] == "R32"].copy()
-    r32_matches["Kickoff"] = "Round of 32"
-
-    match_labels = pd.concat([group_matches, r32_matches], ignore_index=True)
+    match_labels = match_catalog.copy()
+    round_titles = {"R32": "Round of 32", "R16": "Round of 16"}
+    match_labels["Round Order"] = match_labels["Group"].map({"R32": 0, "R16": 1}).fillna(99)
+    match_labels = match_labels.sort_values(["Round Order", "Match ID"]).copy()
+    match_labels["Kickoff"] = match_labels["Group"].map(round_titles).fillna("")
     match_labels["Match"] = match_labels.apply(
         lambda r: f"{flag(r['Team A'])} {r['Team A']} vs {r['Team B']} {flag(r['Team B'])}", axis=1
     )
-    return match_labels
+    return match_labels.drop(columns=["Round Order"])
 
 def advance_round(prev_round_df):
     """Takes winners from a round and pairs them into the next round."""
@@ -1426,50 +1423,59 @@ with tab7:
         # Score existing predictions
         st.session_state.predictions = refresh_prediction_scores(st.session_state.predictions, prediction_match_catalog)
 
-        # ── UPCOMING MATCHES TO PREDICT ───────────────────────────────────────
         st.markdown(t("pick_winners", lang))
-        upcoming = st.session_state.matches[st.session_state.matches["Status"] != "Finished"].copy()
-        upcoming = sort_matches_by_kickoff(upcoming)
 
-        if len(upcoming) == 0:
-            st.success(t("all_finished", lang))
-        else:
-            made_any = False
-            for _, match in upcoming.iterrows():
+        def render_knockout_prediction_cards(round_group, round_title):
+            round_matches = prediction_match_catalog[prediction_match_catalog["Group"] == round_group].copy()
+
+            if len(round_matches) == 0:
+                st.info("No matches available yet.")
+                return
+
+            for _, match in round_matches.iterrows():
                 match_id = match["Match ID"]
+                finished = match["Status"] == "Finished"
                 locked = is_match_locked(match)
-
-                # Check if this player already predicted this match
                 existing = st.session_state.predictions[
                     (st.session_state.predictions["Player"] == player) &
                     (st.session_state.predictions["Match ID"] == match_id)
                 ]
                 already_picked = existing.iloc[0]["Predicted Winner"] if len(existing) > 0 else None
-
-                grp_color = GROUP_COLORS.get(str(match["Group"]), "#748CF7")
-                match_time = format_match_datetime(match)
-                lock_badge = "<span style='color:#FF6B6B;font-size:0.75rem'>🔒 Locked</span>" if locked else "<span style='color:#48D8A0;font-size:0.75rem'>🟢 Open</span>"
+                pick_result = existing.iloc[0]["Correct"] if len(existing) > 0 else ""
+                status_badge = "🏁 Final" if finished else ("🔒 Locked" if locked else "🟢 Open")
+                status_color = "#F7C948" if finished else ("#FF6B6B" if locked else "#48D8A0")
+                badge_color = "#F7C948" if round_group == "R32" else "#5BA7FF"
+                result_badge = ""
+                if finished and already_picked and pick_result in ("✅", "❌"):
+                    result_color = "#48D8A0" if pick_result == "✅" else "#FF6B6B"
+                    result_text = "Won" if pick_result == "✅" else "Lost"
+                    result_badge = f"<span style='color:{result_color};font-size:0.8rem'>{pick_result} {result_text}</span>"
 
                 st.markdown(f"""
                 <div class='match-card' style='margin-bottom:0.3rem'>
-                    <span class='group-badge' style='background:{grp_color}22;color:{grp_color};border:1px solid {grp_color}44'>GRP {match["Group"]}</span>
-                    <span style='color:#5a6a8a;font-size:0.8rem'>{match_time}</span>
+                    <span class='group-badge' style='background:{badge_color}22;color:{badge_color};border:1px solid {badge_color}44'>{round_group}</span>
+                    <span style='color:#5a6a8a;font-size:0.8rem'>{round_title}</span>
                     <span style='font-weight:700'>{flag(match["Team A"])} {match["Team A"]} vs {match["Team B"]} {flag(match["Team B"])}</span>
-                    {lock_badge}
+                    <span style='color:{status_color};font-size:0.75rem'>{status_badge}</span>
                     {"<span style='color:#F7C948;font-size:0.8rem'>" + t("your_pick", lang) + ": " + already_picked + "</span>" if already_picked else ""}
+                    {result_badge}
                 </div>""", unsafe_allow_html=True)
 
-                if not locked:
+                if not finished and not locked:
                     pick_placeholder = t("pick_winner_placeholder", lang)
-                    options = [pick_placeholder, match["Team A"], match["Team B"], "Draw"]
+                    knockout_options = [pick_placeholder, match["Team A"], match["Team B"], "Draw"]
                     current_idx = 0
-                    if already_picked and already_picked in options:
-                        current_idx = options.index(already_picked)
+                    if already_picked and already_picked in knockout_options:
+                        current_idx = knockout_options.index(already_picked)
 
                     pick_label = f"Pick winner for {match['Team A']} vs {match['Team B']}"
-                    pick = st.selectbox(pick_label, options, index=current_idx,
-                                       key=f"pred_{player}_{match_id}",
-                                       label_visibility="collapsed")
+                    pick = st.selectbox(
+                        pick_label,
+                        knockout_options,
+                        index=current_idx,
+                        key=f"{round_group.lower()}_pred_{player}_{match_id}",
+                        label_visibility="collapsed",
+                    )
 
                     if pick != pick_placeholder and pick != already_picked:
                         correct = prediction_result_for_pick(prediction_match_catalog, match_id, pick)
@@ -1487,64 +1493,11 @@ with tab7:
                         st.session_state.predictions = pd.concat(
                             [st.session_state.predictions, new_row], ignore_index=True
                         )
-                        made_any = True
 
         st.markdown("### Round of 32 Predictions")
-        r32_matches = prediction_match_catalog[prediction_match_catalog["Group"] == "R32"].copy()
-
-        for _, match in r32_matches.iterrows():
-            match_id = match["Match ID"]
-            finished = match["Status"] == "Finished"
-            r32_locked = is_match_locked(match)
-            existing = st.session_state.predictions[
-                (st.session_state.predictions["Player"] == player) &
-                (st.session_state.predictions["Match ID"] == match_id)
-            ]
-            already_picked = existing.iloc[0]["Predicted Winner"] if len(existing) > 0 else None
-            status_badge = "✅ Final" if finished else ("🔒 Locked" if r32_locked else "🟢 Open")
-            status_color = "#48D8A0" if finished or not r32_locked else "#FF6B6B"
-
-            st.markdown(f"""
-            <div class='match-card' style='margin-bottom:0.3rem'>
-                <span class='group-badge' style='background:#F7C94822;color:#F7C948;border:1px solid #F7C94844'>R32</span>
-                <span style='color:#5a6a8a;font-size:0.8rem'>Round of 32</span>
-                <span style='font-weight:700'>{flag(match["Team A"])} {match["Team A"]} vs {match["Team B"]} {flag(match["Team B"])}</span>
-                <span style='color:{status_color};font-size:0.75rem'>{status_badge}</span>
-                {"<span style='color:#F7C948;font-size:0.8rem'>" + t("your_pick", lang) + ": " + already_picked + "</span>" if already_picked else ""}
-            </div>""", unsafe_allow_html=True)
-
-            if not finished and not r32_locked:
-                pick_placeholder = t("pick_winner_placeholder", lang)
-                knockout_options = [pick_placeholder, match["Team A"], match["Team B"]]
-                current_idx = 0
-                if already_picked and already_picked in knockout_options:
-                    current_idx = knockout_options.index(already_picked)
-
-                pick_label = f"Pick winner for {match['Team A']} vs {match['Team B']}"
-                pick = st.selectbox(
-                    pick_label,
-                    knockout_options,
-                    index=current_idx,
-                    key=f"r32_pred_{player}_{match_id}",
-                    label_visibility="collapsed",
-                )
-
-                if pick != pick_placeholder and pick != already_picked:
-                    correct = prediction_result_for_pick(prediction_match_catalog, match_id, pick)
-                    save_prediction(player, match_id, pick, correct=correct)
-                    st.session_state.predictions = st.session_state.predictions[
-                        ~((st.session_state.predictions["Player"] == player) &
-                          (st.session_state.predictions["Match ID"] == match_id))
-                    ]
-                    new_row = pd.DataFrame([{
-                        "Player": player,
-                        "Match ID": match_id,
-                        "Predicted Winner": pick,
-                        "Correct": correct
-                    }])
-                    st.session_state.predictions = pd.concat(
-                        [st.session_state.predictions, new_row], ignore_index=True
-                    )
+        render_knockout_prediction_cards("R32", "Round of 32 Predictions")
+        st.markdown("### Round of 16 Predictions")
+        render_knockout_prediction_cards("R16", "Round of 16 Predictions")
 
         # ── MY PREDICTIONS ────────────────────────────────────────────────────
         st.markdown(t("my_predictions", lang))

@@ -95,3 +95,17 @@ def test_prediction_result_for_pick_returns_check_for_finished_correct_pick():
     )
 
     assert prediction_result_for_pick(match_catalog, 1002, "Brazil") == "✅"
+
+
+def test_prediction_result_for_pick_marks_draw_pick_wrong_when_knockout_has_winner():
+    match_catalog = pd.DataFrame(
+        [
+            {
+                "Match ID": 2001,
+                "Status": "Finished",
+                "Winner": "Canada",
+            }
+        ]
+    )
+
+    assert prediction_result_for_pick(match_catalog, 2001, "Draw") == "❌"
