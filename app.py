@@ -768,7 +768,8 @@ def auto_sync_scores(matches_df):
 # ── SESSION STATE ─────────────────────────────────────────────────────────────
 
 def refresh_prediction_scores(predictions, matches):
-    scored = score_predictions(predictions, matches)
+    active_predictions = filter_predictions_to_catalog(predictions, matches)
+    scored = score_predictions(active_predictions, matches)
     if not scored.equals(predictions):
         save_predictions(scored)
     return scored

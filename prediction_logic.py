@@ -32,8 +32,24 @@ def filter_predictions_to_catalog(predictions, match_catalog):
         return predictions.copy()
     if "Match ID" not in match_catalog.columns:
         return predictions.iloc[0:0].copy()
-    match_ids = set(match_catalog["Match ID"].tolist())
-    return predictions[predictions["Match ID"].isin(match_ids)].copy()
+
+    valid_matches = match_catalog.copy()
+    for column in ["Team A", "Team B"]:
+        if column not in valid_matches.columns:
+            valid_matches[column] = ""
+    valid_matches = valid_matches[["Match ID", "Team A", "Team B"]].drop_duplicates(subset=["Match ID"])
+
+    filtered = predictions.merge(valid_matches, on="Match ID", how="inner")
+    missing_matchup = (filtered["Team A"] == "") & (filtered["Team B"] == "")
+    allowed_pick = (
+        missing_matchup
+        |
+        (filtered["Predicted Winner"] == filtered["Team A"])
+        | (filtered["Predicted Winner"] == filtered["Team B"])
+        | (filtered["Predicted Winner"] == "Draw")
+    )
+    filtered = filtered[allowed_pick].copy()
+    return filtered[predictions.columns].copy()
 
 
 def prediction_result_for_pick(match_catalog, match_id, predicted_winner):

@@ -83,6 +83,43 @@ def test_filter_predictions_to_catalog_excludes_finished_group_stage_rows():
     assert filtered["Match ID"].tolist() == [1002]
 
 
+def test_filter_predictions_to_catalog_excludes_stale_pick_for_changed_matchup():
+    predictions = pd.DataFrame(
+        [
+            {
+                "Player": "Ralph",
+                "Match ID": 2001,
+                "Predicted Winner": "Brazil",
+                "Correct": "",
+            },
+            {
+                "Player": "Ralph",
+                "Match ID": 2002,
+                "Predicted Winner": "Morocco",
+                "Correct": "",
+            },
+        ]
+    )
+    match_catalog = pd.DataFrame(
+        [
+            {
+                "Match ID": 2001,
+                "Team A": "Paraguay",
+                "Team B": "France",
+            },
+            {
+                "Match ID": 2002,
+                "Team A": "Morocco",
+                "Team B": "Canada",
+            },
+        ]
+    )
+
+    filtered = filter_predictions_to_catalog(predictions, match_catalog)
+
+    assert filtered["Match ID"].tolist() == [2002]
+
+
 def test_prediction_result_for_pick_returns_check_for_finished_correct_pick():
     match_catalog = pd.DataFrame(
         [
