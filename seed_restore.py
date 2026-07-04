@@ -13,7 +13,7 @@ PREDICTION_COLUMNS = ["Player", "Match ID", "Predicted Winner", "Correct"]
 BRACKET_COLUMNS = ["Match", "Team A", "Team B", "Status", "Winner"]
 PREDICTIONS_RESTORE_MARKER = "predictions_seed_restored_v1"
 BRACKET_RESTORE_MARKER = "bracket_seed_restored_v1"
-R16_PREDICTIONS_RESET_MARKER = "round_of_16_predictions_reset_v1"
+R16_PREDICTIONS_RESET_MARKER = "round_of_16_predictions_reset_v2"
 
 
 def _load_seed(seed_path, columns):

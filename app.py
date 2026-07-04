@@ -1507,7 +1507,11 @@ with tab7:
                         pick_label,
                         knockout_options,
                         index=current_idx,
-                        key=f"{round_group.lower()}_pred_{player}_{match_id}",
+                        key=(
+                            f"{round_group.lower()}_v2_pred_{player}_{match_id}"
+                            if round_group == "R16"
+                            else f"{round_group.lower()}_pred_{player}_{match_id}"
+                        ),
                         label_visibility="collapsed",
                     )
 
