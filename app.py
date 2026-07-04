@@ -10,7 +10,12 @@ from match_lock import is_match_locked
 from match_results import apply_known_final_results, build_standings, compute_match_outcome
 from prediction_logic import filter_predictions_to_catalog, prediction_result_for_pick, score_predictions
 from prediction_matches import ROUND_OF_32_PREDICTION_MATCHES, build_prediction_match_catalog
-from seed_restore import restore_bracket_store_if_missing, restore_prediction_store_if_missing
+from seed_restore import (
+    repair_bracket_store_from_seed,
+    repair_prediction_store_from_seed,
+    restore_bracket_store_if_missing,
+    restore_prediction_store_if_missing,
+)
 from prediction_store import load_predictions, save_prediction, save_predictions
 from translations import LANGUAGES, t
 
@@ -791,12 +796,24 @@ st.session_state.predictions = restore_prediction_store_if_missing(
     load_predictions_fn=load_predictions,
     db_path=Path("predictions.sqlite3"),
 )
+st.session_state.predictions = repair_prediction_store_from_seed(
+    st.session_state.predictions,
+    should_seed=True,
+    save_predictions_fn=save_predictions,
+    load_predictions_fn=load_predictions,
+)
 restore_bracket_store_if_missing(
     load_bracket(),
     should_seed=True,
     save_bracket_round_fn=save_bracket_round,
     load_bracket_fn=load_bracket,
     db_path=Path("predictions.sqlite3"),
+)
+repair_bracket_store_from_seed(
+    load_bracket(),
+    should_seed=True,
+    save_bracket_round_fn=save_bracket_round,
+    load_bracket_fn=load_bracket,
 )
 
 if st_autorefresh:

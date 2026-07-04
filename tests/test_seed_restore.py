@@ -6,6 +6,8 @@ from seed_restore import (
     load_bracket_seed,
     load_prediction_seed,
     _restore_marker_exists,
+    repair_bracket_store_from_seed,
+    repair_prediction_store_from_seed,
     restore_bracket_store_if_missing,
     restore_prediction_store_if_missing,
 )
@@ -81,6 +83,65 @@ def test_restore_prediction_store_if_missing_preserves_existing_rows(tmp_path):
     ]
 
 
+def test_repair_prediction_store_from_seed_backfills_missing_rows_without_overwriting(tmp_path):
+    db_path = tmp_path / "predictions.sqlite3"
+    seed_path = tmp_path / "predictions_seed.tsv"
+    seed_path.write_text(
+        "Player\tMatch ID\tPredicted Winner\tCorrect\n"
+        "Ralph\t1005\tNorway\t✅\n"
+        "Ralph\t1006\tFrance\t✅\n",
+        encoding="utf-8",
+    )
+    save_predictions(
+        pd.DataFrame(
+            [
+                {
+                    "Player": "Ava",
+                    "Match ID": 8,
+                    "Predicted Winner": "Spain",
+                    "Correct": "✅",
+                },
+                {
+                    "Player": "Ralph",
+                    "Match ID": 1005,
+                    "Predicted Winner": "Norway",
+                    "Correct": "✅",
+                },
+            ]
+        ),
+        db_path=db_path,
+    )
+
+    repaired = repair_prediction_store_from_seed(
+        load_predictions(db_path=db_path),
+        should_seed=True,
+        save_predictions_fn=lambda df: save_predictions(df, db_path=db_path),
+        load_predictions_fn=lambda: load_predictions(db_path=db_path),
+        seed_path=seed_path,
+    )
+
+    assert repaired.to_dict("records") == [
+        {
+            "Player": "Ava",
+            "Match ID": 8,
+            "Predicted Winner": "Spain",
+            "Correct": "✅",
+        },
+        {
+            "Player": "Ralph",
+            "Match ID": 1005,
+            "Predicted Winner": "Norway",
+            "Correct": "✅",
+        },
+        {
+            "Player": "Ralph",
+            "Match ID": 1006,
+            "Predicted Winner": "France",
+            "Correct": "✅",
+        },
+    ]
+
+
 def test_restore_bracket_store_if_missing_seeds_fresh_store(tmp_path):
     db_path = tmp_path / "predictions.sqlite3"
     seed_path = tmp_path / "bracket_seed.tsv"
@@ -113,6 +174,56 @@ def test_restore_bracket_store_if_missing_seeds_fresh_store(tmp_path):
             "Team A": "Brazil",
             "Team B": "Japan",
             "Status": "Upcoming",
+            "Winner": "Brazil",
+        },
+    ]
+
+
+def test_repair_bracket_store_from_seed_backfills_missing_rows_and_finished_results(tmp_path):
+    db_path = tmp_path / "predictions.sqlite3"
+    seed_path = tmp_path / "bracket_seed.tsv"
+    seed_path.write_text(
+        "Match\tTeam A\tTeam B\tStatus\tWinner\n"
+        "R32-1\tSouth Africa\tCanada\tFinished\tCanada\n"
+        "R32-2\tBrazil\tJapan\tFinished\tBrazil\n",
+        encoding="utf-8",
+    )
+    save_bracket_round(
+        pd.DataFrame(
+            [
+                {
+                    "Match": "R32-1",
+                    "Team A": "South Africa",
+                    "Team B": "Canada",
+                    "Status": "Upcoming",
+                    "Winner": "South Africa",
+                }
+            ]
+        ),
+        db_path=db_path,
+    )
+
+    repaired = repair_bracket_store_from_seed(
+        load_bracket(db_path=db_path),
+        should_seed=True,
+        save_bracket_round_fn=lambda df: save_bracket_round(df, db_path=db_path),
+        load_bracket_fn=lambda: load_bracket(db_path=db_path),
+        seed_path=seed_path,
+    )
+
+    assert repaired.to_dict("records") == [
+        {
+            "Match": "R32-1",
+            "Team A": "South Africa",
+            "Team B": "Canada",
+            "Status": "Finished",
+            "Winner": "Canada",
+        },
+        {
+            "Match": "R32-2",
+            "Team A": "Brazil",
+            "Team B": "Japan",
+            "Status": "Finished",
             "Winner": "Brazil",
         },
     ]

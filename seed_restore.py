@@ -96,6 +96,40 @@ def restore_prediction_store_if_missing(
     return load_predictions_fn()
 
 
+def repair_prediction_store_from_seed(
+    predictions,
+    *,
+    should_seed,
+    save_predictions_fn,
+    load_predictions_fn,
+    seed_path=PREDICTION_SEED_PATH,
+):
+    if not should_seed:
+        return predictions
+
+    seeded = load_prediction_seed(seed_path)
+    if len(seeded) == 0:
+        return predictions
+    if len(predictions) == 0:
+        save_predictions_fn(seeded)
+        return load_predictions_fn()
+
+    existing_keys = predictions[["Player", "Match ID"]].drop_duplicates()
+    missing = seeded.merge(
+        existing_keys,
+        on=["Player", "Match ID"],
+        how="left",
+        indicator=True,
+    )
+    missing = missing[missing["_merge"] == "left_only"][PREDICTION_COLUMNS].copy()
+    if len(missing) == 0:
+        return predictions
+
+    merged = pd.concat([predictions, missing], ignore_index=True)
+    save_predictions_fn(merged[PREDICTION_COLUMNS])
+    return load_predictions_fn()
+
+
 def restore_bracket_store_if_missing(
     saved_bracket,
     *,
@@ -116,4 +150,64 @@ def restore_bracket_store_if_missing(
 
     save_bracket_round_fn(seeded)
     _write_restore_marker(db_path, BRACKET_RESTORE_MARKER)
+    return load_bracket_fn()
+
+
+def repair_bracket_store_from_seed(
+    saved_bracket,
+    *,
+    should_seed,
+    save_bracket_round_fn,
+    load_bracket_fn,
+    seed_path=BRACKET_SEED_PATH,
+):
+    if not should_seed:
+        return saved_bracket
+
+    seeded = load_bracket_seed(seed_path)
+    if len(seeded) == 0:
+        return saved_bracket
+    if len(saved_bracket) == 0:
+        save_bracket_round_fn(seeded)
+        return load_bracket_fn()
+
+    repaired = saved_bracket.copy()
+    repaired["Match"] = repaired["Match"].astype(str)
+    changed = False
+
+    for _, seed_row in seeded.iterrows():
+        match_key = str(seed_row["Match"])
+        existing = repaired[repaired["Match"] == match_key]
+        if len(existing) == 0:
+            repaired = pd.concat([repaired, pd.DataFrame([seed_row])], ignore_index=True)
+            changed = True
+            continue
+
+        current = existing.iloc[0]
+        seed_finished = str(seed_row.get("Status", "")).strip() == "Finished"
+        current_team_a = str(current.get("Team A", "")).strip()
+        current_team_b = str(current.get("Team B", "")).strip()
+        current_status = str(current.get("Status", "")).strip()
+        current_winner = str(current.get("Winner", "")).strip()
+        seed_team_a = str(seed_row.get("Team A", "")).strip()
+        seed_team_b = str(seed_row.get("Team B", "")).strip()
+        seed_winner = str(seed_row.get("Winner", "")).strip()
+
+        if not seed_finished:
+            continue
+
+        if (
+            current_team_a != seed_team_a
+            or current_team_b != seed_team_b
+            or current_status != "Finished"
+            or current_winner != seed_winner
+        ):
+            repaired = repaired[repaired["Match"] != match_key]
+            repaired = pd.concat([repaired, pd.DataFrame([seed_row])], ignore_index=True)
+            changed = True
+
+    if not changed:
+        return saved_bracket
+
+    save_bracket_round_fn(repaired[BRACKET_COLUMNS])
     return load_bracket_fn()
