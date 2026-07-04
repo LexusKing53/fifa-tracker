@@ -3,11 +3,13 @@ import pandas as pd
 from bracket_store import load_bracket, save_bracket_round
 from prediction_store import load_predictions, save_predictions
 from seed_restore import (
+    R16_PREDICTIONS_RESET_MARKER,
     load_bracket_seed,
     load_prediction_seed,
     _restore_marker_exists,
     repair_bracket_store_from_seed,
     repair_prediction_store_from_seed,
+    reset_prediction_match_ids_once,
     restore_bracket_store_if_missing,
     restore_prediction_store_if_missing,
 )
@@ -139,6 +141,106 @@ def test_repair_prediction_store_from_seed_backfills_missing_rows_without_overwr
             "Predicted Winner": "France",
             "Correct": "✅",
         },
+    ]
+
+
+def test_reset_prediction_match_ids_once_clears_old_round_of_16_rows_and_writes_marker(tmp_path):
+    db_path = tmp_path / "predictions.sqlite3"
+    save_predictions(
+        pd.DataFrame(
+            [
+                {
+                    "Player": "Ralph",
+                    "Match ID": 1005,
+                    "Predicted Winner": "Norway",
+                    "Correct": "✅",
+                },
+                {
+                    "Player": "Ralph",
+                    "Match ID": 2002,
+                    "Predicted Winner": "Morocco",
+                    "Correct": "",
+                },
+            ]
+        ),
+        db_path=db_path,
+    )
+
+    reset = reset_prediction_match_ids_once(
+        load_predictions(db_path=db_path),
+        should_seed=True,
+        match_ids=range(2001, 2009),
+        save_predictions_fn=lambda df: save_predictions(df, db_path=db_path),
+        load_predictions_fn=lambda: load_predictions(db_path=db_path),
+        db_path=db_path,
+    )
+
+    assert reset.to_dict("records") == [
+        {
+            "Player": "Ralph",
+            "Match ID": 1005,
+            "Predicted Winner": "Norway",
+            "Correct": "✅",
+        }
+    ]
+    assert _restore_marker_exists(db_path, R16_PREDICTIONS_RESET_MARKER)
+
+
+def test_reset_prediction_match_ids_once_skips_after_marker_exists(tmp_path):
+    db_path = tmp_path / "predictions.sqlite3"
+    save_predictions(
+        pd.DataFrame(
+            [
+                {
+                    "Player": "Ralph",
+                    "Match ID": 2002,
+                    "Predicted Winner": "Morocco",
+                    "Correct": "",
+                }
+            ]
+        ),
+        db_path=db_path,
+    )
+
+    reset_prediction_match_ids_once(
+        load_predictions(db_path=db_path),
+        should_seed=True,
+        match_ids=range(2001, 2009),
+        save_predictions_fn=lambda df: save_predictions(df, db_path=db_path),
+        load_predictions_fn=lambda: load_predictions(db_path=db_path),
+        db_path=db_path,
+    )
+
+    save_predictions(
+        pd.DataFrame(
+            [
+                {
+                    "Player": "Ralph",
+                    "Match ID": 2002,
+                    "Predicted Winner": "Morocco",
+                    "Correct": "",
+                }
+            ]
+        ),
+        db_path=db_path,
+    )
+
+    second = reset_prediction_match_ids_once(
+        load_predictions(db_path=db_path),
+        should_seed=True,
+        match_ids=range(2001, 2009),
+        save_predictions_fn=lambda df: save_predictions(df, db_path=db_path),
+        load_predictions_fn=lambda: load_predictions(db_path=db_path),
+        db_path=db_path,
+    )
+
+    assert second.to_dict("records") == [
+        {
+            "Player": "Ralph",
+            "Match ID": 2002,
+            "Predicted Winner": "Morocco",
+            "Correct": "",
+        }
     ]
 
 

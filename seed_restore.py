@@ -13,6 +13,7 @@ PREDICTION_COLUMNS = ["Player", "Match ID", "Predicted Winner", "Correct"]
 BRACKET_COLUMNS = ["Match", "Team A", "Team B", "Status", "Winner"]
 PREDICTIONS_RESTORE_MARKER = "predictions_seed_restored_v1"
 BRACKET_RESTORE_MARKER = "bracket_seed_restored_v1"
+R16_PREDICTIONS_RESET_MARKER = "round_of_16_predictions_reset_v1"
 
 
 def _load_seed(seed_path, columns):
@@ -128,6 +129,33 @@ def repair_prediction_store_from_seed(
     merged = pd.concat([predictions, missing], ignore_index=True)
     save_predictions_fn(merged[PREDICTION_COLUMNS])
     return load_predictions_fn()
+
+
+def reset_prediction_match_ids_once(
+    predictions,
+    *,
+    should_seed,
+    match_ids,
+    save_predictions_fn,
+    load_predictions_fn,
+    db_path=DEFAULT_DB_PATH,
+    marker=R16_PREDICTIONS_RESET_MARKER,
+):
+    if not should_seed:
+        return predictions
+    if _restore_marker_exists(db_path, marker):
+        return predictions
+
+    filtered = predictions.copy()
+    if len(filtered) > 0:
+        filtered = filtered[~filtered["Match ID"].isin(match_ids)].copy()
+
+    if not filtered.equals(predictions):
+        save_predictions_fn(filtered)
+        filtered = load_predictions_fn()
+
+    _write_restore_marker(db_path, marker)
+    return filtered
 
 
 def restore_bracket_store_if_missing(

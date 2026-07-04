@@ -17,6 +17,7 @@ from prediction_matches import (
 from seed_restore import (
     repair_bracket_store_from_seed,
     repair_prediction_store_from_seed,
+    reset_prediction_match_ids_once,
     restore_bracket_store_if_missing,
     restore_prediction_store_if_missing,
 )
@@ -809,6 +810,14 @@ st.session_state.predictions = repair_prediction_store_from_seed(
     should_seed=True,
     save_predictions_fn=save_predictions,
     load_predictions_fn=load_predictions,
+)
+st.session_state.predictions = reset_prediction_match_ids_once(
+    st.session_state.predictions,
+    should_seed=True,
+    match_ids=range(2001, 2009),
+    save_predictions_fn=save_predictions,
+    load_predictions_fn=load_predictions,
+    db_path=Path("predictions.sqlite3"),
 )
 restore_bracket_store_if_missing(
     load_bracket(),
