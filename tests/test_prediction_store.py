@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 from types import SimpleNamespace
 
 import pandas as pd
@@ -125,3 +126,70 @@ def test_default_store_uses_turso_when_streamlit_secrets_are_present(monkeypatch
         "database": "libsql://fifa-tracker.turso.io",
         "auth_token": "top-secret-token",
     }
+
+
+def test_connect_preserves_original_error_when_rollback_fails(monkeypatch):
+    class FakeConnection:
+        def execute(self, *_args, **_kwargs):
+            return None
+
+        def rollback(self):
+            raise ValueError("rollback failed")
+
+        def close(self):
+            return None
+
+    monkeypatch.setattr(
+        prediction_store,
+        "_open_connection",
+        lambda db_path=prediction_store.DEFAULT_DB_PATH: FakeConnection(),
+    )
+
+    try:
+        with prediction_store._connect():
+            raise RuntimeError("boom")
+    except Exception as exc:
+        assert type(exc) is RuntimeError
+        assert str(exc) == "boom"
+    else:
+        raise AssertionError("expected RuntimeError to be raised")
+
+
+def test_save_predictions_retries_once_for_turso_bulk_write(monkeypatch):
+    attempts = []
+    executed = []
+
+    class FakeConnection:
+        def execute(self, sql, params=None):
+            executed.append((sql.strip(), params))
+            return None
+
+    @contextmanager
+    def flaky_connect(db_path=prediction_store.DEFAULT_DB_PATH):
+        attempts.append(str(db_path))
+        if len(attempts) == 1:
+            raise ValueError("Hrana: api error: status=404 Not found")
+        yield FakeConnection()
+
+    monkeypatch.setattr(prediction_store, "_connect", flaky_connect)
+    monkeypatch.setattr(
+        prediction_store,
+        "_turso_config_for",
+        lambda db_path: {"database": "libsql://fifa-tracker.turso.io", "auth_token": "token"},
+    )
+
+    prediction_store.save_predictions(
+        pd.DataFrame(
+            [
+                {
+                    "Player": "Ralph",
+                    "Match ID": 7,
+                    "Predicted Winner": "Brazil",
+                    "Correct": "",
+                }
+            ]
+        )
+    )
+
+    assert len(attempts) == 2
+    assert executed[0][0] == "DELETE FROM predictions"

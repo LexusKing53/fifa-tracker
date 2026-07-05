@@ -76,7 +76,10 @@ def _connect(db_path=DEFAULT_DB_PATH):
     except Exception:
         rollback = getattr(conn, "rollback", None)
         if callable(rollback):
-            rollback()
+            try:
+                rollback()
+            except Exception:
+                pass
         raise
     finally:
         close = getattr(conn, "close", None)
@@ -123,7 +126,7 @@ def ensure_predictions(required_predictions, db_path=DEFAULT_DB_PATH):
             save_prediction(player, match_id, predicted_winner, db_path=db_path)
 
 
-def save_predictions(df, db_path=DEFAULT_DB_PATH):
+def _save_predictions_once(df, db_path=DEFAULT_DB_PATH):
     with _connect(db_path) as conn:
         conn.execute("DELETE FROM predictions")
         for _, row in df.fillna("").iterrows():
@@ -139,3 +142,16 @@ def save_predictions(df, db_path=DEFAULT_DB_PATH):
                     str(row.get("Correct", "")),
                 ),
             )
+
+
+def save_predictions(df, db_path=DEFAULT_DB_PATH):
+    attempts = 2 if _turso_config_for(db_path) is not None else 1
+    last_error = None
+    for _ in range(attempts):
+        try:
+            _save_predictions_once(df, db_path=db_path)
+            return
+        except Exception as exc:
+            last_error = exc
+    if last_error is not None:
+        raise last_error
