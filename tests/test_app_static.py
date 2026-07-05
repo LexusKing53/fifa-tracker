@@ -202,9 +202,9 @@ def test_fixture_cards_show_start_time_with_soon_status():
 
 def test_prediction_views_show_start_time():
     assert 'match_labels["Kickoff"] = match_labels["Group"].map(round_titles).fillna("")' in SOURCE
-    assert 'prediction_match_labels = build_prediction_match_labels(prediction_match_catalog)' in SOURCE
+    assert 'prediction_match_labels = build_prediction_match_labels(visible_prediction_match_catalog)' in SOURCE
     assert 'prediction_match_labels[["Match ID", "Team A", "Team B", "Kickoff", "Group", "Match"]]' in SOURCE
-    assert 'match_labels = build_prediction_match_labels(prediction_match_catalog)' in SOURCE
+    assert 'match_labels = build_prediction_match_labels(visible_prediction_match_catalog)' in SOURCE
 
 
 def test_prediction_shared_views_refresh_from_store():
@@ -255,20 +255,21 @@ def test_round_of_32_uses_hardcoded_matchups():
     assert 'pairs.append({"Match": f"R32-{i//2+1}", "Team A": q.loc[i, "Team"], "Team B": q.loc[i+1, "Team"], "Status": "Upcoming", "Winner": ""})' not in SOURCE
 
 
-def test_predictions_page_has_separate_round_of_32_section():
+def test_predictions_page_only_shows_round_of_16_knockout_section():
     assert "from prediction_matches import (" in SOURCE
     assert "ROUND_OF_32_PREDICTION_MATCHES" in SOURCE
     assert "build_prediction_match_catalog" in SOURCE
     assert "build_round_of_16_from_round_of_32" in SOURCE
     assert 'prediction_match_catalog = build_prediction_match_catalog(st.session_state.matches)' in SOURCE
-    assert 'st.markdown("### Round of 32 Predictions")' in SOURCE
+    assert 'visible_prediction_match_catalog = prediction_match_catalog[prediction_match_catalog["Group"] == "R16"].copy()' in SOURCE
+    assert 'st.markdown("### Round of 32 Predictions")' not in SOURCE
     assert 'st.markdown("### Round of 16 Predictions")' in SOURCE
     assert 'knockout_options = [pick_placeholder, match["Team A"], match["Team B"], "Draw"]' in SOURCE
 
 
 def test_prediction_views_hide_finished_group_matches_and_score_round_of_32():
     assert 'st.session_state.predictions = refresh_prediction_scores(st.session_state.predictions, prediction_match_catalog)' in SOURCE
-    assert 'prediction_match_labels = build_prediction_match_labels(prediction_match_catalog)' in SOURCE
+    assert 'prediction_match_labels = build_prediction_match_labels(visible_prediction_match_catalog)' in SOURCE
     assert 'upcoming = st.session_state.matches[st.session_state.matches["Status"] != "Finished"].copy()' not in SOURCE
 
 
@@ -294,9 +295,14 @@ def test_bracket_page_syncs_finished_round_of_32_results_before_advancing():
 
 
 def test_leaderboard_only_counts_active_prediction_matches():
-    assert 'active_predictions = filter_predictions_to_catalog(st.session_state.predictions, prediction_match_catalog)' in SOURCE
+    assert 'active_predictions = filter_predictions_to_catalog(st.session_state.predictions, visible_prediction_match_catalog)' in SOURCE
     assert 'lb = get_leaderboard(active_predictions)' in SOURCE
 
 
 def test_app_does_not_delete_round_of_16_predictions_on_startup():
     assert "reset_prediction_match_ids_once(" not in SOURCE
+
+
+def test_app_does_not_restore_prediction_seed_rows_on_startup():
+    assert 'st.session_state.predictions = restore_prediction_store_if_missing(' not in SOURCE
+    assert 'st.session_state.predictions = repair_prediction_store_from_seed(' not in SOURCE

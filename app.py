@@ -16,9 +16,7 @@ from prediction_matches import (
 )
 from seed_restore import (
     repair_bracket_store_from_seed,
-    repair_prediction_store_from_seed,
     restore_bracket_store_if_missing,
-    restore_prediction_store_if_missing,
 )
 from prediction_store import load_predictions, save_prediction, save_predictions
 from translations import LANGUAGES, t
@@ -797,19 +795,6 @@ if "player_name" not in st.session_state:
 if "matches" not in st.session_state:
     st.session_state.matches = ensure_columns(load_matches())
 
-st.session_state.predictions = restore_prediction_store_if_missing(
-    st.session_state.predictions,
-    should_seed=True,
-    save_predictions_fn=save_predictions,
-    load_predictions_fn=load_predictions,
-    db_path=Path("predictions.sqlite3"),
-)
-st.session_state.predictions = repair_prediction_store_from_seed(
-    st.session_state.predictions,
-    should_seed=True,
-    save_predictions_fn=save_predictions,
-    load_predictions_fn=load_predictions,
-)
 restore_bracket_store_if_missing(
     load_bracket(),
     should_seed=True,
@@ -1442,8 +1427,9 @@ with tab7:
         player = st.session_state.player_name
         st.markdown(f"<p style='color:#48D8A0;font-weight:700'>{t('playing_as', lang)}: {player} 🎮</p>", unsafe_allow_html=True)
         prediction_match_catalog = build_prediction_match_catalog(st.session_state.matches)
-        prediction_match_labels = build_prediction_match_labels(prediction_match_catalog)
-        prediction_match_ids = prediction_match_catalog["Match ID"].tolist()
+        visible_prediction_match_catalog = prediction_match_catalog[prediction_match_catalog["Group"] == "R16"].copy()
+        prediction_match_labels = build_prediction_match_labels(visible_prediction_match_catalog)
+        prediction_match_ids = visible_prediction_match_catalog["Match ID"].tolist()
 
         # Score existing predictions
         st.session_state.predictions = refresh_prediction_scores(st.session_state.predictions, prediction_match_catalog)
@@ -1451,7 +1437,7 @@ with tab7:
         st.markdown(t("pick_winners", lang))
 
         def render_knockout_prediction_cards(round_group, round_title):
-            round_matches = prediction_match_catalog[prediction_match_catalog["Group"] == round_group].copy()
+            round_matches = visible_prediction_match_catalog[visible_prediction_match_catalog["Group"] == round_group].copy()
 
             if len(round_matches) == 0:
                 st.info("No matches available yet.")
@@ -1523,8 +1509,6 @@ with tab7:
                             [st.session_state.predictions, new_row], ignore_index=True
                         )
 
-        st.markdown("### Round of 32 Predictions")
-        render_knockout_prediction_cards("R32", "Round of 32 Predictions")
         st.markdown("### Round of 16 Predictions")
         render_knockout_prediction_cards("R16", "Round of 16 Predictions")
 
@@ -1549,10 +1533,11 @@ with tab7:
     # Refresh persisted predictions before shared views so other players appear.
     st.session_state.predictions = load_predictions()
     prediction_match_catalog = build_prediction_match_catalog(st.session_state.matches)
-    prediction_match_labels = build_prediction_match_labels(prediction_match_catalog)
-    prediction_match_ids = prediction_match_catalog["Match ID"].tolist()
+    visible_prediction_match_catalog = prediction_match_catalog[prediction_match_catalog["Group"] == "R16"].copy()
+    prediction_match_labels = build_prediction_match_labels(visible_prediction_match_catalog)
+    prediction_match_ids = visible_prediction_match_catalog["Match ID"].tolist()
     st.session_state.predictions = refresh_prediction_scores(st.session_state.predictions, prediction_match_catalog)
-    active_predictions = filter_predictions_to_catalog(st.session_state.predictions, prediction_match_catalog)
+    active_predictions = filter_predictions_to_catalog(st.session_state.predictions, visible_prediction_match_catalog)
 
     # ── LEADERBOARD ───────────────────────────────────────────────────────
     st.markdown(t("leaderboard", lang))
@@ -1583,7 +1568,7 @@ with tab7:
     else:
         all_players = sorted(all_preds["Player"].unique())
         # Build match labels
-        match_labels = build_prediction_match_labels(prediction_match_catalog)
+        match_labels = build_prediction_match_labels(visible_prediction_match_catalog)
         # Pivot: rows=matches, cols=players
         grid = match_labels[["Match ID", "Date", "Kickoff", "Group", "Match"]].copy()
         for p in all_players:
