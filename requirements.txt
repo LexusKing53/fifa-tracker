@@ -1,0 +1,5 @@
+libsql
+pandas
+requests
+streamlit
+streamlit-autorefresh

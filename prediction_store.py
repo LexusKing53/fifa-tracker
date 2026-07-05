@@ -1,17 +1,61 @@
+import os
 import sqlite3
+from contextlib import contextmanager
 from pathlib import Path
 
 import pandas as pd
+
+try:
+    import libsql
+except Exception:
+    libsql = None
+
+try:
+    import streamlit as st
+except Exception:
+    st = None
 
 
 PREDICTION_COLUMNS = ["Player", "Match ID", "Predicted Winner", "Correct"]
 DEFAULT_DB_PATH = Path("predictions.sqlite3")
 
 
-def _connect(db_path=DEFAULT_DB_PATH):
+def _get_secret(name):
+    value = os.environ.get(name, "")
+    if value:
+        return value
+    if st is None:
+        return ""
+    try:
+        return str(st.secrets.get(name, ""))
+    except Exception:
+        return ""
+
+
+def _turso_config_for(db_path):
+    if Path(db_path) != DEFAULT_DB_PATH or libsql is None:
+        return None
+
+    url = _get_secret("TURSO_DATABASE_URL")
+    token = _get_secret("TURSO_AUTH_TOKEN")
+    if not url or not token:
+        return None
+    return {"database": url, "auth_token": token}
+
+
+def _open_connection(db_path=DEFAULT_DB_PATH):
+    turso_config = _turso_config_for(db_path)
+    if turso_config is not None:
+        return libsql.connect(**turso_config)
+
     path = Path(db_path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(path)
+    return sqlite3.connect(path)
+
+
+@contextmanager
+def _connect(db_path=DEFAULT_DB_PATH):
+    conn = _open_connection(db_path)
     conn.execute(
         """
         CREATE TABLE IF NOT EXISTS predictions (
@@ -24,7 +68,20 @@ def _connect(db_path=DEFAULT_DB_PATH):
         )
         """
     )
-    return conn
+    try:
+        yield conn
+        commit = getattr(conn, "commit", None)
+        if callable(commit):
+            commit()
+    except Exception:
+        rollback = getattr(conn, "rollback", None)
+        if callable(rollback):
+            rollback()
+        raise
+    finally:
+        close = getattr(conn, "close", None)
+        if callable(close):
+            close()
 
 
 def load_predictions(db_path=DEFAULT_DB_PATH):
