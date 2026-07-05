@@ -306,3 +306,7 @@ def test_app_does_not_delete_round_of_16_predictions_on_startup():
 def test_app_does_not_restore_prediction_seed_rows_on_startup():
     assert 'st.session_state.predictions = restore_prediction_store_if_missing(' not in SOURCE
     assert 'st.session_state.predictions = repair_prediction_store_from_seed(' not in SOURCE
+
+
+def test_app_does_not_auto_refresh_predictions_page():
+    assert 'st_autorefresh(interval=60000, key="refresh")' not in SOURCE

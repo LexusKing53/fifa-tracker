@@ -57,15 +57,16 @@ def test_prediction_catalog_adds_round_of_16_matches():
     assert catalog.loc[2008, "Group"] == "R16"
     assert catalog.loc[2008, "Team A"] == "Mexico"
     assert catalog.loc[2008, "Team B"] == "England"
-    assert catalog.loc[2001, "Status"] == "Upcoming"
+    assert catalog.loc[2001, "Status"] == "Finished"
+    assert catalog.loc[2001, "Winner"] == "France"
     assert catalog.loc[2008, "Winner"] == ""
 
 
 def test_prediction_catalog_marks_finished_round_of_16_matches():
     catalog = build_prediction_match_catalog(pd.DataFrame()).set_index("Match ID")
 
-    assert catalog.loc[2001, "Status"] == "Upcoming"
-    assert catalog.loc[2001, "Winner"] == ""
+    assert catalog.loc[2001, "Status"] == "Finished"
+    assert catalog.loc[2001, "Winner"] == "France"
     assert catalog.loc[2002, "Status"] == "Finished"
     assert catalog.loc[2002, "Winner"] == "Morocco"
 

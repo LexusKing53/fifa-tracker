@@ -27,11 +27,6 @@ restore_bracket_round = bracket_store.restore_bracket_round
 save_bracket_round = bracket_store.save_bracket_round
 apply_live_match_results = getattr(bracket_store, "apply_live_match_results", lambda round_df, live_matches: round_df)
 
-try:
-    from streamlit_autorefresh import st_autorefresh
-except Exception:
-    st_autorefresh = None
-
 st.set_page_config(page_title="FIFA 2026 Tracker", page_icon="⚽", layout="wide")
 
 # ── API ──────────────────────────────────────────────────────────────────────
@@ -808,9 +803,6 @@ repair_bracket_store_from_seed(
     save_bracket_round_fn=save_bracket_round,
     load_bracket_fn=load_bracket,
 )
-
-if st_autorefresh:
-    st_autorefresh(interval=60000, key="refresh")
 
 st.session_state.matches = ensure_columns(st.session_state.matches)
 st.session_state.matches = st.session_state.matches.apply(compute_match_outcome, axis=1)

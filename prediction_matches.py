@@ -34,6 +34,7 @@ ROUND_OF_16_PAIRINGS = [
 
 
 ROUND_OF_16_RESULT_OVERRIDES = {
+    2001: {"Status": "Finished", "Winner": "France"},
     2002: {"Status": "Finished", "Winner": "Morocco"},
 }
 
