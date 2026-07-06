@@ -71,6 +71,24 @@ def test_prediction_catalog_marks_finished_round_of_16_matches():
     assert catalog.loc[2002, "Winner"] == "Morocco"
 
 
+def test_prediction_catalog_uses_supplied_live_round_of_16_results():
+    live_matches = pd.DataFrame(
+        [
+            {
+                "Team A": "Portugal",
+                "Team B": "Spain",
+                "Status": "Finished",
+                "Winner": "Spain",
+            }
+        ]
+    )
+
+    catalog = build_prediction_match_catalog(live_matches).set_index("Match ID")
+
+    assert catalog.loc[2003, "Status"] == "Finished"
+    assert catalog.loc[2003, "Winner"] == "Spain"
+
+
 def test_prediction_catalog_marks_brazil_round_of_32_win_as_finished():
     catalog = build_prediction_match_catalog(pd.DataFrame())
     brazil_match = catalog.loc[catalog["Match ID"] == 1002].iloc[0]

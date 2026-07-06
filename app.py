@@ -758,6 +758,56 @@ def auto_sync_scores(matches_df):
 
     return updated, count
 
+
+def build_live_knockout_prediction_matches():
+    columns = ["Match ID", "Group", "Date", "Time", "Team A", "Team B", "Team A Score", "Team B Score", "Winner", "Loser", "Status", "Venue"]
+    api_matches = fetch_all_wc_matches()
+    if not api_matches:
+        return pd.DataFrame(columns=columns)
+
+    rows = []
+    for match in api_matches:
+        if match.get("status") != "FINISHED":
+            continue
+
+        full_time = match.get("score", {}).get("fullTime", {})
+        home_score = full_time.get("home")
+        away_score = full_time.get("away")
+        home_team = normalize_team_name(match.get("homeTeam", {}).get("name", ""))
+        away_team = normalize_team_name(match.get("awayTeam", {}).get("name", ""))
+
+        if not home_team or not away_team or home_score is None or away_score is None:
+            continue
+
+        rows.append(
+            {
+                "Match ID": "",
+                "Group": "",
+                "Date": str(match.get("utcDate", ""))[:10],
+                "Time": "",
+                "Team A": home_team,
+                "Team B": away_team,
+                "Team A Score": str(home_score),
+                "Team B Score": str(away_score),
+                "Winner": "",
+                "Loser": "",
+                "Status": "Finished",
+                "Venue": "",
+            }
+        )
+
+    if not rows:
+        return pd.DataFrame(columns=columns)
+
+    return pd.DataFrame(rows, columns=columns).apply(compute_match_outcome, axis=1)
+
+
+def build_prediction_result_source(matches_df):
+    live_knockout_matches = build_live_knockout_prediction_matches()
+    if len(live_knockout_matches) == 0:
+        return matches_df.copy()
+    return pd.concat([matches_df, live_knockout_matches], ignore_index=True)
+
 # ── SESSION STATE ─────────────────────────────────────────────────────────────
 
 def refresh_prediction_scores(predictions, matches):
@@ -1418,7 +1468,8 @@ with tab7:
     else:
         player = st.session_state.player_name
         st.markdown(f"<p style='color:#48D8A0;font-weight:700'>{t('playing_as', lang)}: {player} 🎮</p>", unsafe_allow_html=True)
-        prediction_match_catalog = build_prediction_match_catalog(st.session_state.matches)
+        prediction_result_source = build_prediction_result_source(st.session_state.matches)
+        prediction_match_catalog = build_prediction_match_catalog(prediction_result_source)
         visible_prediction_match_catalog = prediction_match_catalog[prediction_match_catalog["Group"] == "R16"].copy()
         prediction_match_labels = build_prediction_match_labels(visible_prediction_match_catalog)
         prediction_match_ids = visible_prediction_match_catalog["Match ID"].tolist()
@@ -1524,7 +1575,8 @@ with tab7:
 
     # Refresh persisted predictions before shared views so other players appear.
     st.session_state.predictions = load_predictions()
-    prediction_match_catalog = build_prediction_match_catalog(st.session_state.matches)
+    prediction_result_source = build_prediction_result_source(st.session_state.matches)
+    prediction_match_catalog = build_prediction_match_catalog(prediction_result_source)
     visible_prediction_match_catalog = prediction_match_catalog[prediction_match_catalog["Group"] == "R16"].copy()
     prediction_match_labels = build_prediction_match_labels(visible_prediction_match_catalog)
     prediction_match_ids = visible_prediction_match_catalog["Match ID"].tolist()

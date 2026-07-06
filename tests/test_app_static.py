@@ -260,7 +260,10 @@ def test_predictions_page_only_shows_round_of_16_knockout_section():
     assert "ROUND_OF_32_PREDICTION_MATCHES" in SOURCE
     assert "build_prediction_match_catalog" in SOURCE
     assert "build_round_of_16_from_round_of_32" in SOURCE
-    assert 'prediction_match_catalog = build_prediction_match_catalog(st.session_state.matches)' in SOURCE
+    assert "def build_prediction_result_source(" in SOURCE
+    assert "build_live_knockout_prediction_matches()" in SOURCE
+    assert 'prediction_result_source = build_prediction_result_source(st.session_state.matches)' in SOURCE
+    assert 'prediction_match_catalog = build_prediction_match_catalog(prediction_result_source)' in SOURCE
     assert 'visible_prediction_match_catalog = prediction_match_catalog[prediction_match_catalog["Group"] == "R16"].copy()' in SOURCE
     assert 'st.markdown("### Round of 32 Predictions")' not in SOURCE
     assert 'st.markdown("### Round of 16 Predictions")' in SOURCE

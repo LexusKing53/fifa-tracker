@@ -39,7 +39,65 @@ ROUND_OF_16_RESULT_OVERRIDES = {
 }
 
 
-def build_round_of_16_from_round_of_32(round_of_32_df):
+def _normalize_prediction_team(name):
+    return str(name).strip()
+
+
+def _prediction_team_key(team_a, team_b):
+    return tuple(sorted((_normalize_prediction_team(team_a), _normalize_prediction_team(team_b))))
+
+
+def apply_live_prediction_results(base_matches_df, live_matches_df):
+    updated = base_matches_df.copy()
+    if len(updated) == 0 or len(live_matches_df) == 0:
+        return updated
+
+    live = live_matches_df.copy()
+    for column in ["Match ID", "Team A", "Team B", "Status", "Winner"]:
+        if column not in live.columns:
+            live[column] = ""
+    live = live[["Match ID", "Team A", "Team B", "Status", "Winner"]].copy()
+    live["__match_id"] = live["Match ID"].astype(str).str.strip()
+    live["__team_key"] = live.apply(lambda row: _prediction_team_key(row["Team A"], row["Team B"]), axis=1)
+
+    live_by_match_id = (
+        live[live["__match_id"] != ""]
+        .drop_duplicates(subset=["__match_id"], keep="last")
+        .set_index("__match_id")
+        .to_dict("index")
+    )
+    live_by_team_key = (
+        live.drop_duplicates(subset=["__team_key"], keep="last")
+        .set_index("__team_key")
+        .to_dict("index")
+    )
+
+    for idx, row in updated.iterrows():
+        live_row = None
+        match_id = str(row.get("Match ID", "")).strip()
+        if match_id and match_id in live_by_match_id:
+            live_row = live_by_match_id[match_id]
+        else:
+            team_key = _prediction_team_key(row.get("Team A", ""), row.get("Team B", ""))
+            if team_key in live_by_team_key:
+                live_row = live_by_team_key[team_key]
+
+        if live_row is None:
+            continue
+
+        status = str(live_row.get("Status", "")).strip()
+        winner = str(live_row.get("Winner", "")).strip()
+
+        if status:
+            updated.at[idx, "Status"] = status
+
+        if status == "Finished" and winner in {str(row["Team A"]), str(row["Team B"])}:
+            updated.at[idx, "Winner"] = winner
+
+    return updated
+
+
+def build_round_of_16_from_round_of_32(round_of_32_df, live_matches_df=None):
     round_of_32 = round_of_32_df.copy()
     if len(round_of_32) == 0:
         return pd.DataFrame(
@@ -81,15 +139,19 @@ def build_round_of_16_from_round_of_32(round_of_32_df):
                 "Winner": winner,
             }
         )
-    return pd.DataFrame(matches)
+    round_of_16 = pd.DataFrame(matches)
+    if live_matches_df is not None:
+        round_of_16 = apply_live_prediction_results(round_of_16, live_matches_df)
+    return round_of_16
 
 
-def build_round_of_16_prediction_matches():
+def build_round_of_16_prediction_matches(live_matches_df=None):
     round_of_32 = pd.DataFrame(ROUND_OF_32_PREDICTION_MATCHES)
-    return build_round_of_16_from_round_of_32(round_of_32)
+    return build_round_of_16_from_round_of_32(round_of_32, live_matches_df=live_matches_df)
 
 
 def build_prediction_match_catalog(group_matches_df):
     r32_matches = pd.DataFrame(ROUND_OF_32_PREDICTION_MATCHES)
-    r16_matches = build_round_of_16_prediction_matches()
+    r32_matches = apply_live_prediction_results(r32_matches, group_matches_df)
+    r16_matches = build_round_of_16_prediction_matches(live_matches_df=group_matches_df)
     return pd.concat([r32_matches, r16_matches], ignore_index=True)
