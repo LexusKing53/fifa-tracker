@@ -40,6 +40,13 @@ ROUND_OF_16_RESULT_OVERRIDES = {
 
 QUARTERFINAL_START_MATCH_ID = 3001
 
+QUARTERFINAL_PAIRINGS = [
+    {"Match ID": 3001, "Left R16 Match ID": 2001, "Right R16 Match ID": 2002},
+    {"Match ID": 3002, "Left R16 Match ID": 2003, "Right R16 Match ID": 2007},
+    {"Match ID": 3003, "Left R16 Match ID": 2004, "Right R16 Match ID": 2008},
+    {"Match ID": 3004, "Left R16 Match ID": 2005, "Right R16 Match ID": 2006},
+]
+
 
 def _normalize_prediction_team(name):
     return str(name).strip()
@@ -157,22 +164,23 @@ def build_quarterfinal_prediction_matches(round_of_16_df, live_matches_df=None):
     if len(round_of_16_df) == 0:
         return pd.DataFrame(columns=columns)
 
-    winners = list(round_of_16_df["Winner"].values)
+    matches_by_id = round_of_16_df.drop_duplicates(subset=["Match ID"]).set_index("Match ID")
     matches = []
-    for index in range(0, len(winners), 2):
-        if index + 1 >= len(winners):
+    for index, pairing in enumerate(QUARTERFINAL_PAIRINGS, start=1):
+        left_id = pairing["Left R16 Match ID"]
+        right_id = pairing["Right R16 Match ID"]
+        if left_id not in matches_by_id.index or right_id not in matches_by_id.index:
             continue
 
-        team_a = str(winners[index]).strip()
-        team_b = str(winners[index + 1]).strip()
-        if not team_a or not team_b:
-            continue
+        left_row = matches_by_id.loc[left_id]
+        right_row = matches_by_id.loc[right_id]
+        team_a = str(left_row.get("Winner", "")).strip() or f"Winner R16-{left_id - 2000}"
+        team_b = str(right_row.get("Winner", "")).strip() or f"Winner R16-{right_id - 2000}"
 
-        match_number = index // 2 + 1
         matches.append(
             {
-                "Match": f"QF-{match_number}",
-                "Match ID": QUARTERFINAL_START_MATCH_ID + index // 2,
+                "Match": f"QF-{index}",
+                "Match ID": pairing["Match ID"],
                 "Group": "QF",
                 "Date": "",
                 "Time": "",

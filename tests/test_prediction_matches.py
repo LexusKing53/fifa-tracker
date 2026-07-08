@@ -94,12 +94,12 @@ def test_prediction_catalog_builds_quarterfinal_matches_from_finished_round_of_1
         [
             {"Team A": "Paraguay", "Team B": "France", "Status": "Finished", "Winner": "France"},
             {"Team A": "Morocco", "Team B": "Canada", "Status": "Finished", "Winner": "Morocco"},
-            {"Team A": "Portugal", "Team B": "Spain", "Status": "Finished", "Winner": "Portugal"},
-            {"Team A": "Brazil", "Team B": "Norway", "Status": "Finished", "Winner": "Brazil"},
+            {"Team A": "Portugal", "Team B": "Spain", "Status": "Finished", "Winner": "Spain"},
+            {"Team A": "Brazil", "Team B": "Norway", "Status": "Finished", "Winner": "Norway"},
             {"Team A": "Argentina", "Team B": "Egypt", "Status": "Finished", "Winner": "Argentina"},
-            {"Team A": "Switzerland", "Team B": "Colombia", "Status": "Finished", "Winner": "Colombia"},
-            {"Team A": "United States", "Team B": "Belgium", "Status": "Finished", "Winner": "United States"},
-            {"Team A": "Mexico", "Team B": "England", "Status": "Finished", "Winner": "Mexico"},
+            {"Team A": "Switzerland", "Team B": "Colombia", "Status": "Finished", "Winner": "Switzerland"},
+            {"Team A": "United States", "Team B": "Belgium", "Status": "Finished", "Winner": "Belgium"},
+            {"Team A": "Mexico", "Team B": "England", "Status": "Finished", "Winner": "England"},
         ]
     )
 
@@ -108,12 +108,12 @@ def test_prediction_catalog_builds_quarterfinal_matches_from_finished_round_of_1
     assert catalog.loc[3001, "Group"] == "QF"
     assert catalog.loc[3001, "Team A"] == "France"
     assert catalog.loc[3001, "Team B"] == "Morocco"
-    assert catalog.loc[3002, "Team A"] == "Portugal"
-    assert catalog.loc[3002, "Team B"] == "Brazil"
-    assert catalog.loc[3003, "Team A"] == "Argentina"
-    assert catalog.loc[3003, "Team B"] == "Colombia"
-    assert catalog.loc[3004, "Team A"] == "United States"
-    assert catalog.loc[3004, "Team B"] == "Mexico"
+    assert catalog.loc[3002, "Team A"] == "Spain"
+    assert catalog.loc[3002, "Team B"] == "Belgium"
+    assert catalog.loc[3003, "Team A"] == "Norway"
+    assert catalog.loc[3003, "Team B"] == "England"
+    assert catalog.loc[3004, "Team A"] == "Argentina"
+    assert catalog.loc[3004, "Team B"] == "Switzerland"
     assert catalog.loc[3001, "Status"] == "Upcoming"
     assert catalog.loc[3001, "Winner"] == ""
 
