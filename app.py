@@ -614,8 +614,8 @@ def build_round_of_32(qualifiers):
 
 def build_prediction_match_labels(match_catalog):
     match_labels = match_catalog.copy()
-    round_titles = {"R32": "Round of 32", "R16": "Round of 16"}
-    match_labels["Round Order"] = match_labels["Group"].map({"R32": 0, "R16": 1}).fillna(99)
+    round_titles = {"R32": "Round of 32", "R16": "Round of 16", "QF": "Quarterfinals"}
+    match_labels["Round Order"] = match_labels["Group"].map({"R32": 0, "R16": 1, "QF": 2}).fillna(99)
     match_labels = match_labels.sort_values(["Round Order", "Match ID"]).copy()
     match_labels["Kickoff"] = match_labels["Group"].map(round_titles).fillna("")
     match_labels["Match"] = match_labels.apply(
@@ -1470,7 +1470,7 @@ with tab7:
         st.markdown(f"<p style='color:#48D8A0;font-weight:700'>{t('playing_as', lang)}: {player} 🎮</p>", unsafe_allow_html=True)
         prediction_result_source = build_prediction_result_source(st.session_state.matches)
         prediction_match_catalog = build_prediction_match_catalog(prediction_result_source)
-        visible_prediction_match_catalog = prediction_match_catalog[prediction_match_catalog["Group"] == "R16"].copy()
+        visible_prediction_match_catalog = prediction_match_catalog[prediction_match_catalog["Group"] == "QF"].copy()
         prediction_match_labels = build_prediction_match_labels(visible_prediction_match_catalog)
         prediction_match_ids = visible_prediction_match_catalog["Match ID"].tolist()
 
@@ -1529,7 +1529,7 @@ with tab7:
                         index=current_idx,
                         key=(
                             f"{round_group.lower()}_v2_pred_{player}_{match_id}"
-                            if round_group == "R16"
+                            if round_group in ("R16", "QF")
                             else f"{round_group.lower()}_pred_{player}_{match_id}"
                         ),
                         label_visibility="collapsed",
@@ -1552,8 +1552,8 @@ with tab7:
                             [st.session_state.predictions, new_row], ignore_index=True
                         )
 
-        st.markdown("### Round of 16 Predictions")
-        render_knockout_prediction_cards("R16", "Round of 16 Predictions")
+        st.markdown("### Quarterfinal Predictions")
+        render_knockout_prediction_cards("QF", "Quarterfinal Predictions")
 
         # ── MY PREDICTIONS ────────────────────────────────────────────────────
         st.markdown(t("my_predictions", lang))
@@ -1577,7 +1577,7 @@ with tab7:
     st.session_state.predictions = load_predictions()
     prediction_result_source = build_prediction_result_source(st.session_state.matches)
     prediction_match_catalog = build_prediction_match_catalog(prediction_result_source)
-    visible_prediction_match_catalog = prediction_match_catalog[prediction_match_catalog["Group"] == "R16"].copy()
+    visible_prediction_match_catalog = prediction_match_catalog[prediction_match_catalog["Group"] == "QF"].copy()
     prediction_match_labels = build_prediction_match_labels(visible_prediction_match_catalog)
     prediction_match_ids = visible_prediction_match_catalog["Match ID"].tolist()
     st.session_state.predictions = refresh_prediction_scores(st.session_state.predictions, prediction_match_catalog)

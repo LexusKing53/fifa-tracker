@@ -38,6 +38,8 @@ ROUND_OF_16_RESULT_OVERRIDES = {
     2002: {"Status": "Finished", "Winner": "Morocco"},
 }
 
+QUARTERFINAL_START_MATCH_ID = 3001
+
 
 def _normalize_prediction_team(name):
     return str(name).strip()
@@ -150,8 +152,46 @@ def build_round_of_16_prediction_matches(live_matches_df=None):
     return build_round_of_16_from_round_of_32(round_of_32, live_matches_df=live_matches_df)
 
 
+def build_quarterfinal_prediction_matches(round_of_16_df, live_matches_df=None):
+    columns = ["Match", "Match ID", "Group", "Date", "Time", "Team A", "Team B", "Status", "Winner"]
+    if len(round_of_16_df) == 0:
+        return pd.DataFrame(columns=columns)
+
+    winners = list(round_of_16_df["Winner"].values)
+    matches = []
+    for index in range(0, len(winners), 2):
+        if index + 1 >= len(winners):
+            continue
+
+        team_a = str(winners[index]).strip()
+        team_b = str(winners[index + 1]).strip()
+        if not team_a or not team_b:
+            continue
+
+        match_number = index // 2 + 1
+        matches.append(
+            {
+                "Match": f"QF-{match_number}",
+                "Match ID": QUARTERFINAL_START_MATCH_ID + index // 2,
+                "Group": "QF",
+                "Date": "",
+                "Time": "",
+                "Team A": team_a,
+                "Team B": team_b,
+                "Status": "Upcoming",
+                "Winner": "",
+            }
+        )
+
+    quarterfinals = pd.DataFrame(matches, columns=columns)
+    if live_matches_df is not None and len(quarterfinals) > 0:
+        quarterfinals = apply_live_prediction_results(quarterfinals, live_matches_df)
+    return quarterfinals
+
+
 def build_prediction_match_catalog(group_matches_df):
     r32_matches = pd.DataFrame(ROUND_OF_32_PREDICTION_MATCHES)
     r32_matches = apply_live_prediction_results(r32_matches, group_matches_df)
     r16_matches = build_round_of_16_prediction_matches(live_matches_df=group_matches_df)
-    return pd.concat([r32_matches, r16_matches], ignore_index=True)
+    qf_matches = build_quarterfinal_prediction_matches(r16_matches, live_matches_df=group_matches_df)
+    return pd.concat([r32_matches, r16_matches, qf_matches], ignore_index=True)

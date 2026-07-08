@@ -180,8 +180,8 @@ def test_live_api_today_matches_include_schedule_fallbacks():
 
 
 def test_prediction_game_orders_matches_by_kickoff_datetime():
-    assert 'round_titles = {"R32": "Round of 32", "R16": "Round of 16"}' in SOURCE
-    assert 'match_labels["Round Order"] = match_labels["Group"].map({"R32": 0, "R16": 1}).fillna(99)' in SOURCE
+    assert 'round_titles = {"R32": "Round of 32", "R16": "Round of 16", "QF": "Quarterfinals"}' in SOURCE
+    assert 'match_labels["Round Order"] = match_labels["Group"].map({"R32": 0, "R16": 1, "QF": 2}).fillna(99)' in SOURCE
     assert 'match_labels = match_labels.sort_values(["Round Order", "Match ID"]).copy()' in SOURCE
     assert 'grid.sort_values(["Date", "Match ID"])' not in SOURCE
 
@@ -255,7 +255,7 @@ def test_round_of_32_uses_hardcoded_matchups():
     assert 'pairs.append({"Match": f"R32-{i//2+1}", "Team A": q.loc[i, "Team"], "Team B": q.loc[i+1, "Team"], "Status": "Upcoming", "Winner": ""})' not in SOURCE
 
 
-def test_predictions_page_only_shows_round_of_16_knockout_section():
+def test_predictions_page_only_shows_quarterfinal_knockout_section():
     assert "from prediction_matches import (" in SOURCE
     assert "ROUND_OF_32_PREDICTION_MATCHES" in SOURCE
     assert "build_prediction_match_catalog" in SOURCE
@@ -264,9 +264,9 @@ def test_predictions_page_only_shows_round_of_16_knockout_section():
     assert "build_live_knockout_prediction_matches()" in SOURCE
     assert 'prediction_result_source = build_prediction_result_source(st.session_state.matches)' in SOURCE
     assert 'prediction_match_catalog = build_prediction_match_catalog(prediction_result_source)' in SOURCE
-    assert 'visible_prediction_match_catalog = prediction_match_catalog[prediction_match_catalog["Group"] == "R16"].copy()' in SOURCE
+    assert 'visible_prediction_match_catalog = prediction_match_catalog[prediction_match_catalog["Group"] == "QF"].copy()' in SOURCE
     assert 'st.markdown("### Round of 32 Predictions")' not in SOURCE
-    assert 'st.markdown("### Round of 16 Predictions")' in SOURCE
+    assert 'st.markdown("### Quarterfinal Predictions")' in SOURCE
     assert 'knockout_options = [pick_placeholder, match["Team A"], match["Team B"], "Draw"]' in SOURCE
 
 

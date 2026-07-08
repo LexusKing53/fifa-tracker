@@ -89,6 +89,35 @@ def test_prediction_catalog_uses_supplied_live_round_of_16_results():
     assert catalog.loc[2003, "Winner"] == "Spain"
 
 
+def test_prediction_catalog_builds_quarterfinal_matches_from_finished_round_of_16():
+    live_matches = pd.DataFrame(
+        [
+            {"Team A": "Paraguay", "Team B": "France", "Status": "Finished", "Winner": "France"},
+            {"Team A": "Morocco", "Team B": "Canada", "Status": "Finished", "Winner": "Morocco"},
+            {"Team A": "Portugal", "Team B": "Spain", "Status": "Finished", "Winner": "Portugal"},
+            {"Team A": "Brazil", "Team B": "Norway", "Status": "Finished", "Winner": "Brazil"},
+            {"Team A": "Argentina", "Team B": "Egypt", "Status": "Finished", "Winner": "Argentina"},
+            {"Team A": "Switzerland", "Team B": "Colombia", "Status": "Finished", "Winner": "Colombia"},
+            {"Team A": "United States", "Team B": "Belgium", "Status": "Finished", "Winner": "United States"},
+            {"Team A": "Mexico", "Team B": "England", "Status": "Finished", "Winner": "Mexico"},
+        ]
+    )
+
+    catalog = build_prediction_match_catalog(live_matches).set_index("Match ID")
+
+    assert catalog.loc[3001, "Group"] == "QF"
+    assert catalog.loc[3001, "Team A"] == "France"
+    assert catalog.loc[3001, "Team B"] == "Morocco"
+    assert catalog.loc[3002, "Team A"] == "Portugal"
+    assert catalog.loc[3002, "Team B"] == "Brazil"
+    assert catalog.loc[3003, "Team A"] == "Argentina"
+    assert catalog.loc[3003, "Team B"] == "Colombia"
+    assert catalog.loc[3004, "Team A"] == "United States"
+    assert catalog.loc[3004, "Team B"] == "Mexico"
+    assert catalog.loc[3001, "Status"] == "Upcoming"
+    assert catalog.loc[3001, "Winner"] == ""
+
+
 def test_prediction_catalog_marks_brazil_round_of_32_win_as_finished():
     catalog = build_prediction_match_catalog(pd.DataFrame())
     brazil_match = catalog.loc[catalog["Match ID"] == 1002].iloc[0]
