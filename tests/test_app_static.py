@@ -239,13 +239,16 @@ def test_auto_sync_writes_scores_as_strings():
     assert 'updated.at[idx, "Team B Score"] = str(away_score)' in SOURCE
 
 
-def test_bracket_keeps_future_rounds_visible_as_previews():
-    assert "build_round_of_16_from_round_of_32" in SOURCE
-    assert 'if prefix == "R32":' in SOURCE
-    assert "return build_round_of_16_from_round_of_32(prev_round_df)" in SOURCE
-    assert 'r16 = render_round(r16, "⚔️ ROUND OF 16", "r16", interactive=True)' in SOURCE
-    assert 'render_round(advance_round(r32), "⚔️ ROUND OF 16", "r16_preview", interactive=False)' in SOURCE
-    assert 'Complete all Round of 32 winners to populate the Round of 16.' in SOURCE
+def test_bracket_starts_with_confirmed_quarterfinals_and_keeps_later_previews():
+    assert '"Match": "QF-1", "Team A": "France", "Team B": "Morocco"' in SOURCE
+    assert '"Match": "QF-2", "Team A": "Spain", "Team B": "Belgium"' in SOURCE
+    assert '"Match": "QF-3", "Team A": "Norway", "Team B": "England"' in SOURCE
+    assert '"Match": "QF-4", "Team A": "Argentina", "Team B": "Switzerland"' in SOURCE
+    assert 'render_round(qf, "🏅 QUARTERFINALS", "qf", interactive=True)' in SOURCE
+    assert 'render_round(advance_round(qf), "🔥 SEMIFINALS", "sf_preview", interactive=False)' in SOURCE
+    assert 'render_round(advance_round(sf_source), "🏆 FINAL", "final_preview", interactive=False)' in SOURCE
+    assert '"🥊 ROUND OF 32"' not in SOURCE
+    assert '"⚔️ ROUND OF 16"' not in SOURCE
 
 
 def test_round_of_32_uses_hardcoded_matchups():
@@ -292,9 +295,10 @@ def test_bracket_page_uses_persisted_store():
     assert "clear_bracket()" in SOURCE
 
 
-def test_bracket_page_syncs_finished_round_of_32_results_before_advancing():
-    assert "apply_live_match_results" in SOURCE
-    assert "r32 = apply_live_match_results(r32, r32_live_matches)" in SOURCE
+def test_bracket_page_does_not_rebuild_earlier_rounds():
+    assert "expected_r32 = build_round_of_32(qualifiers)" not in SOURCE
+    assert "r32_live_matches = pd.DataFrame(ROUND_OF_32_PREDICTION_MATCHES)" not in SOURCE
+    assert 'visible_prediction_match_catalog = prediction_match_catalog[prediction_match_catalog["Group"] == "QF"].copy()' in SOURCE
 
 
 def test_leaderboard_only_counts_active_prediction_matches():

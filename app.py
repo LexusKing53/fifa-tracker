@@ -1149,151 +1149,114 @@ with tab2:
 # ════════════════════════════════════════════════════════════════════════════════
 with tab3:
     st.markdown(f"<div class='section-title'>{t('tournament_bracket', lang)}</div>", unsafe_allow_html=True)
-    qualifiers = get_qualifiers(standings)
+    saved_bracket = load_bracket()
+    expected_qf = pd.DataFrame([
+        {"Match": "QF-1", "Team A": "France", "Team B": "Morocco", "Status": "Upcoming", "Winner": ""},
+        {"Match": "QF-2", "Team A": "Spain", "Team B": "Belgium", "Status": "Upcoming", "Winner": ""},
+        {"Match": "QF-3", "Team A": "Norway", "Team B": "England", "Status": "Upcoming", "Winner": ""},
+        {"Match": "QF-4", "Team A": "Argentina", "Team B": "Switzerland", "Status": "Upcoming", "Winner": ""},
+    ])
 
-    if len(qualifiers) < 4:
-        st.info("🏆 Complete group stage matches to populate the bracket.")
-        st.markdown("""
-        **Full knockout structure:**
-        - 🥊 Round of 32 — 32 teams
-        - ⚔️ Round of 16 — 16 teams
-        - 🏅 Quarterfinals — 8 teams
-        - 🔥 Semifinals — 4 teams
-        - 🏆 Final — 2 teams
-        """)
-    else:
-        # ── ROUND OF 32 ───────────────────────────────────────────────────
-        expected_r32 = build_round_of_32(qualifiers)
-        saved_bracket = load_bracket()
-
-        def render_round(df, title, key, interactive=True):
-            st.markdown(f"<h3 style='color:#F7C948;font-family:Bebas Neue,sans-serif;letter-spacing:2px;margin-top:1.5rem'>{title}</h3>", unsafe_allow_html=True)
-            if len(df) == 0:
-                st.info("This stage will appear automatically once the earlier bracket rounds are available.")
-                return df
-            cols_count = min(4, len(df))
-            cols = st.columns(cols_count)
-            updated = df.copy()
-            for i, (idx, row) in enumerate(df.iterrows()):
-                with cols[i % cols_count]:
-                    winner_class = "bracket-winner" if row["Winner"] else ""
-                    st.markdown(f"""
-                    <div class='bracket-match {winner_class}'>
-                        <div>{flag(row["Team A"])} {row["Team A"]}</div>
-                        <div style='color:#5a6a8a;font-size:0.75rem;text-align:center'>vs</div>
-                        <div>{flag(row["Team B"])} {row["Team B"]}</div>
-                        {"<div style='color:#F7C948;font-size:0.8rem;margin-top:4px'>🏆 " + row["Winner"] + "</div>" if row["Winner"] else ""}
-                    </div>""", unsafe_allow_html=True)
-                    options = ["—", row["Team A"], row["Team B"]]
-                    current = row["Winner"] if row["Winner"] else "—"
-                    if current not in options:
-                        current = "—"
-                    is_finished = str(row.get("Status", "")).strip() == "Finished"
-                    if interactive and not is_finished:
-                        choice = st.selectbox("Winner", options, index=options.index(current), key=f"{key}_{i}", label_visibility="collapsed")
-                        updated.at[idx, "Winner"] = "" if choice == "—" else choice
-                    elif interactive and is_finished:
-                        st.caption("Final result")
-            return updated
-
-        def build_third_place_round(sf_round_df):
-            losers = []
-            for _, row in sf_round_df.iterrows():
-                if not row["Winner"]:
-                    continue
-                loser = row["Team A"] if row["Winner"] == row["Team B"] else row["Team B"]
-                losers.append(loser)
-            if len(losers) != 2:
-                return pd.DataFrame(columns=["Match", "Team A", "Team B", "Status", "Winner"])
-            return pd.DataFrame([{
-                "Match": "3rd Place",
-                "Team A": losers[0],
-                "Team B": losers[1],
-                "Status": "Upcoming",
-                "Winner": ""
-            }])
-
-        r32_live_matches = pd.DataFrame(ROUND_OF_32_PREDICTION_MATCHES)
-        r32 = restore_bracket_round(expected_r32, saved_bracket)
-        r32 = apply_live_match_results(r32, r32_live_matches)
-        r32 = render_round(r32, "🥊 ROUND OF 32", "r32", interactive=True)
-        save_bracket_round(r32)
-
-        # ── ROUND OF 16 ───────────────────────────────────────────────────
-        r32_complete = r32["Winner"].ne("").all()
-        if r32_complete:
-            r16 = restore_bracket_round(advance_round(r32), saved_bracket)
-            r16 = render_round(r16, "⚔️ ROUND OF 16", "r16", interactive=True)
-            save_bracket_round(r16)
-            r16_source = r16
-        else:
-            render_round(advance_round(r32), "⚔️ ROUND OF 16", "r16_preview", interactive=False)
-            st.caption("Complete all Round of 32 winners to populate the Round of 16.")
-            r16_source = advance_round(r32)
-
-        # ── QUARTERFINALS ─────────────────────────────────────────────
-        r16_complete = r32_complete and len(r16_source) > 0 and r16_source["Winner"].ne("").all()
-        if r16_complete:
-            qf = restore_bracket_round(advance_round(r16_source), saved_bracket)
-            qf = render_round(qf, "🏅 QUARTERFINALS", "qf", interactive=True)
-            save_bracket_round(qf)
-            qf_source = qf
-        else:
-            render_round(advance_round(r16_source), "🏅 QUARTERFINALS", "qf_preview", interactive=False)
-            st.caption("Complete all Round of 16 winners to populate the Quarterfinals.")
-            qf_source = advance_round(r16_source)
-
-        # ── SEMIFINALS ────────────────────────────────────────────
-        qf_complete = r16_complete and len(qf_source) > 0 and qf_source["Winner"].ne("").all()
-        if qf_complete:
-            sf = restore_bracket_round(advance_round(qf_source), saved_bracket)
-            sf = render_round(sf, "🔥 SEMIFINALS", "sf", interactive=True)
-            save_bracket_round(sf)
-            sf_source = sf
-        else:
-            render_round(advance_round(qf_source), "🔥 SEMIFINALS", "sf_preview", interactive=False)
-            st.caption("Complete all Quarterfinal winners to populate the Semifinals.")
-            sf_source = advance_round(qf_source)
-
-        # ── FINAL ─────────────────────────────────────────────────
-        sf_complete = qf_complete and len(sf_source) > 0 and sf_source["Winner"].ne("").all()
-        if sf_complete:
-            third_place = restore_bracket_round(build_third_place_round(sf_source), saved_bracket)
-            if len(third_place) > 0:
-                third_place = render_round(third_place, "🥉 3RD PLACE PLAYOFF", "third_place", interactive=True)
-                save_bracket_round(third_place)
-                third_winner = third_place["Winner"].iloc[0] if third_place["Winner"].iloc[0] else None
-                if third_winner:
-                    st.markdown(f"""
-                    <div style='text-align:center;padding:1rem;background:linear-gradient(135deg,#1a1a00,#2a2a10);border:2px solid #CD7F32;border-radius:16px;margin-top:0.5rem'>
-                        <div style='font-size:2.5rem'>{flag(third_winner)}</div>
-                        <div style='font-family:Bebas Neue,sans-serif;font-size:2rem;color:#CD7F32;letter-spacing:3px'>{third_winner}</div>
-                        <div style='color:#8a9ab5;font-size:0.9rem;margin-top:0.3rem'>🥉 3RD PLACE</div>
-                    </div>""", unsafe_allow_html=True)
-
-            final = restore_bracket_round(advance_round(sf_source), saved_bracket)
-            final = render_round(final, "🏆 FINAL", "final", interactive=True)
-            save_bracket_round(final)
-
-            final_winner = final["Winner"].iloc[0] if len(final) and final["Winner"].iloc[0] else None
-            if final_winner:
-                st.balloons()
+    def render_round(df, title, key, interactive=True):
+        st.markdown(f"<h3 style='color:#F7C948;font-family:Bebas Neue,sans-serif;letter-spacing:2px;margin-top:1.5rem'>{title}</h3>", unsafe_allow_html=True)
+        if len(df) == 0:
+            st.info("This stage will appear automatically once the earlier bracket rounds are available.")
+            return df
+        cols_count = min(4, len(df))
+        cols = st.columns(cols_count)
+        updated = df.copy()
+        for i, (idx, row) in enumerate(df.iterrows()):
+            with cols[i % cols_count]:
+                winner_class = "bracket-winner" if row["Winner"] else ""
                 st.markdown(f"""
-                <div style='text-align:center;padding:2rem;background:linear-gradient(135deg,#1a2a00,#2a3a00);border:2px solid #F7C948;border-radius:16px;margin-top:1rem'>
-                    <div style='font-size:4rem'>{flag(final_winner)}</div>
-                    <div style='font-family:Bebas Neue,sans-serif;font-size:3rem;color:#F7C948;letter-spacing:3px'>{final_winner}</div>
-                    <div style='color:#8a9ab5;font-size:1rem;margin-top:0.5rem'>🏆 FIFA WORLD CUP 2026 CHAMPION</div>
+                <div class='bracket-match {winner_class}'>
+                    <div>{flag(row["Team A"])} {row["Team A"]}</div>
+                    <div style='color:#5a6a8a;font-size:0.75rem;text-align:center'>vs</div>
+                    <div>{flag(row["Team B"])} {row["Team B"]}</div>
+                    {"<div style='color:#F7C948;font-size:0.8rem;margin-top:4px'>🏆 " + row["Winner"] + "</div>" if row["Winner"] else ""}
                 </div>""", unsafe_allow_html=True)
-        else:
-            render_round(advance_round(sf_source), "🏆 FINAL", "final_preview", interactive=False)
-            st.caption("Complete all Semifinal winners to populate the 3rd Place Playoff and Final.")
+                options = ["—", row["Team A"], row["Team B"]]
+                current = row["Winner"] if row["Winner"] else "—"
+                if current not in options:
+                    current = "—"
+                is_finished = str(row.get("Status", "")).strip() == "Finished"
+                if interactive and not is_finished:
+                    choice = st.selectbox("Winner", options, index=options.index(current), key=f"{key}_{i}", label_visibility="collapsed")
+                    updated.at[idx, "Winner"] = "" if choice == "—" else choice
+                elif interactive and is_finished:
+                    st.caption("Final result")
+        return updated
 
-        if st.button("🔄 Reset Bracket", type="secondary"):
-            clear_bracket()
-            for key in list(st.session_state.keys()):
-                if key.startswith(("r32_", "r16_", "qf_", "sf_", "third_place_", "final_")):
-                    del st.session_state[key]
-            st.rerun()
+    def build_third_place_round(sf_round_df):
+        losers = []
+        for _, row in sf_round_df.iterrows():
+            if not row["Winner"]:
+                continue
+            loser = row["Team A"] if row["Winner"] == row["Team B"] else row["Team B"]
+            losers.append(loser)
+        if len(losers) != 2:
+            return pd.DataFrame(columns=["Match", "Team A", "Team B", "Status", "Winner"])
+        return pd.DataFrame([{
+            "Match": "3rd Place",
+            "Team A": losers[0],
+            "Team B": losers[1],
+            "Status": "Upcoming",
+            "Winner": ""
+        }])
+
+    qf = restore_bracket_round(expected_qf, saved_bracket)
+    qf = render_round(qf, "🏅 QUARTERFINALS", "qf", interactive=True)
+    save_bracket_round(qf)
+
+    qf_complete = qf["Winner"].ne("").all()
+    if qf_complete:
+        sf = restore_bracket_round(advance_round(qf), saved_bracket)
+        sf = render_round(sf, "🔥 SEMIFINALS", "sf", interactive=True)
+        save_bracket_round(sf)
+        sf_source = sf
+    else:
+        render_round(advance_round(qf), "🔥 SEMIFINALS", "sf_preview", interactive=False)
+        sf_source = advance_round(qf)
+        st.caption("Complete all Quarterfinal winners to populate the Semifinals.")
+
+    sf_complete = qf_complete and len(sf_source) > 0 and sf_source["Winner"].ne("").all()
+    if sf_complete:
+        third_place = restore_bracket_round(build_third_place_round(sf_source), saved_bracket)
+        if len(third_place) > 0:
+            third_place = render_round(third_place, "🥉 3RD PLACE PLAYOFF", "third_place", interactive=True)
+            save_bracket_round(third_place)
+            third_winner = third_place["Winner"].iloc[0] if third_place["Winner"].iloc[0] else None
+            if third_winner:
+                st.markdown(f"""
+                <div style='text-align:center;padding:1rem;background:linear-gradient(135deg,#1a1a00,#2a2a10);border:2px solid #CD7F32;border-radius:16px;margin-top:0.5rem'>
+                    <div style='font-size:2.5rem'>{flag(third_winner)}</div>
+                    <div style='font-family:Bebas Neue,sans-serif;font-size:2rem;color:#CD7F32;letter-spacing:3px'>{third_winner}</div>
+                    <div style='color:#8a9ab5;font-size:0.9rem;margin-top:0.3rem'>🥉 3RD PLACE</div>
+                </div>""", unsafe_allow_html=True)
+
+        final = restore_bracket_round(advance_round(sf_source), saved_bracket)
+        final = render_round(final, "🏆 FINAL", "final", interactive=True)
+        save_bracket_round(final)
+
+        final_winner = final["Winner"].iloc[0] if len(final) and final["Winner"].iloc[0] else None
+        if final_winner:
+            st.balloons()
+            st.markdown(f"""
+            <div style='text-align:center;padding:2rem;background:linear-gradient(135deg,#1a2a00,#2a3a00);border:2px solid #F7C948;border-radius:16px;margin-top:1rem'>
+                <div style='font-size:4rem'>{flag(final_winner)}</div>
+                <div style='font-family:Bebas Neue,sans-serif;font-size:3rem;color:#F7C948;letter-spacing:3px'>{final_winner}</div>
+                <div style='color:#8a9ab5;font-size:1rem;margin-top:0.5rem'>🏆 FIFA WORLD CUP 2026 CHAMPION</div>
+            </div>""", unsafe_allow_html=True)
+    else:
+        render_round(advance_round(sf_source), "🏆 FINAL", "final_preview", interactive=False)
+        st.caption("Complete all Semifinal winners to populate the 3rd Place Playoff and Final.")
+
+    if st.button("🔄 Reset Bracket", type="secondary"):
+        clear_bracket()
+        for key in list(st.session_state.keys()):
+            if key.startswith(("qf_", "sf_", "third_place_", "final_")):
+                del st.session_state[key]
+        st.rerun()
 
 # ════════════════════════════════════════════════════════════════════════════════
 with tab4:
