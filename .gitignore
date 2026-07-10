@@ -2,3 +2,4 @@ __pycache__/
 *.pyc
 predictions.sqlite3
 predictions.sqlite3-*
+.worktrees/
