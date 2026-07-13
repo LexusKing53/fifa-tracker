@@ -59,7 +59,7 @@ def test_prediction_catalog_adds_round_of_16_matches():
     assert catalog.loc[2008, "Team B"] == "England"
     assert catalog.loc[2001, "Status"] == "Finished"
     assert catalog.loc[2001, "Winner"] == "France"
-    assert catalog.loc[2008, "Winner"] == ""
+    assert catalog.loc[2008, "Winner"] == "England"
 
 
 def test_prediction_catalog_marks_finished_round_of_16_matches():
@@ -114,8 +114,29 @@ def test_prediction_catalog_builds_quarterfinal_matches_from_finished_round_of_1
     assert catalog.loc[3003, "Team B"] == "England"
     assert catalog.loc[3004, "Team A"] == "Argentina"
     assert catalog.loc[3004, "Team B"] == "Switzerland"
-    assert catalog.loc[3001, "Status"] == "Upcoming"
-    assert catalog.loc[3001, "Winner"] == ""
+    assert catalog.loc[3001, "Status"] == "Finished"
+    assert catalog.loc[3001, "Winner"] == "France"
+    assert catalog.loc[3002, "Status"] == "Finished"
+    assert catalog.loc[3002, "Winner"] == "Spain"
+    assert catalog.loc[3003, "Status"] == "Finished"
+    assert catalog.loc[3003, "Winner"] == "England"
+    assert catalog.loc[3004, "Status"] == "Finished"
+    assert catalog.loc[3004, "Winner"] == "Argentina"
+
+
+def test_prediction_catalog_populates_open_semifinals_from_completed_quarterfinals():
+    catalog = build_prediction_match_catalog(pd.DataFrame()).set_index("Match ID")
+
+    assert catalog.loc[4001, "Group"] == "SF"
+    assert catalog.loc[4001, "Team A"] == "France"
+    assert catalog.loc[4001, "Team B"] == "Spain"
+    assert catalog.loc[4001, "Status"] == "Upcoming"
+    assert catalog.loc[4001, "Winner"] == ""
+    assert catalog.loc[4002, "Group"] == "SF"
+    assert catalog.loc[4002, "Team A"] == "England"
+    assert catalog.loc[4002, "Team B"] == "Argentina"
+    assert catalog.loc[4002, "Status"] == "Upcoming"
+    assert catalog.loc[4002, "Winner"] == ""
 
 
 def test_prediction_catalog_marks_brazil_round_of_32_win_as_finished():

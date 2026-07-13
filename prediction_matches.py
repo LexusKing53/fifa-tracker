@@ -36,6 +36,12 @@ ROUND_OF_16_PAIRINGS = [
 ROUND_OF_16_RESULT_OVERRIDES = {
     2001: {"Status": "Finished", "Winner": "France"},
     2002: {"Status": "Finished", "Winner": "Morocco"},
+    2003: {"Status": "Finished", "Winner": "Spain"},
+    2004: {"Status": "Finished", "Winner": "Norway"},
+    2005: {"Status": "Finished", "Winner": "Argentina"},
+    2006: {"Status": "Finished", "Winner": "Switzerland"},
+    2007: {"Status": "Finished", "Winner": "Belgium"},
+    2008: {"Status": "Finished", "Winner": "England"},
 }
 
 QUARTERFINAL_START_MATCH_ID = 3001
@@ -45,6 +51,18 @@ QUARTERFINAL_PAIRINGS = [
     {"Match ID": 3002, "Left R16 Match ID": 2003, "Right R16 Match ID": 2007},
     {"Match ID": 3003, "Left R16 Match ID": 2004, "Right R16 Match ID": 2008},
     {"Match ID": 3004, "Left R16 Match ID": 2005, "Right R16 Match ID": 2006},
+]
+
+QUARTERFINAL_RESULT_OVERRIDES = {
+    3001: {"Status": "Finished", "Winner": "France"},
+    3002: {"Status": "Finished", "Winner": "Spain"},
+    3003: {"Status": "Finished", "Winner": "England"},
+    3004: {"Status": "Finished", "Winner": "Argentina"},
+}
+
+SEMIFINAL_PAIRINGS = [
+    {"Match ID": 4001, "Left QF Match ID": 3001, "Right QF Match ID": 3002},
+    {"Match ID": 4002, "Left QF Match ID": 3003, "Right QF Match ID": 3004},
 ]
 
 
@@ -106,6 +124,21 @@ def apply_live_prediction_results(base_matches_df, live_matches_df):
     return updated
 
 
+def apply_prediction_result_overrides(matches_df, result_overrides):
+    updated = matches_df.copy()
+    if len(updated) == 0:
+        return updated
+
+    for idx, row in updated.iterrows():
+        result = result_overrides.get(row.get("Match ID"), {})
+        status = str(result.get("Status", "")).strip()
+        winner = str(result.get("Winner", "")).strip()
+        if status == "Finished" and winner in {str(row.get("Team A", "")), str(row.get("Team B", ""))}:
+            updated.at[idx, "Status"] = status
+            updated.at[idx, "Winner"] = winner
+    return updated
+
+
 def build_round_of_16_from_round_of_32(round_of_32_df, live_matches_df=None):
     round_of_32 = round_of_32_df.copy()
     if len(round_of_32) == 0:
@@ -151,7 +184,7 @@ def build_round_of_16_from_round_of_32(round_of_32_df, live_matches_df=None):
     round_of_16 = pd.DataFrame(matches)
     if live_matches_df is not None:
         round_of_16 = apply_live_prediction_results(round_of_16, live_matches_df)
-    return round_of_16
+    return apply_prediction_result_overrides(round_of_16, ROUND_OF_16_RESULT_OVERRIDES)
 
 
 def build_round_of_16_prediction_matches(live_matches_df=None):
@@ -177,6 +210,13 @@ def build_quarterfinal_prediction_matches(round_of_16_df, live_matches_df=None):
         team_a = str(left_row.get("Winner", "")).strip() or f"Winner R16-{left_id - 2000}"
         team_b = str(right_row.get("Winner", "")).strip() or f"Winner R16-{right_id - 2000}"
 
+        result_override = QUARTERFINAL_RESULT_OVERRIDES.get(pairing["Match ID"], {})
+        status = str(result_override.get("Status", "Upcoming")).strip() or "Upcoming"
+        winner = str(result_override.get("Winner", "")).strip()
+        if status != "Finished" or winner not in {team_a, team_b}:
+            status = "Upcoming"
+            winner = ""
+
         matches.append(
             {
                 "Match": f"QF-{index}",
@@ -186,15 +226,52 @@ def build_quarterfinal_prediction_matches(round_of_16_df, live_matches_df=None):
                 "Time": "",
                 "Team A": team_a,
                 "Team B": team_b,
-                "Status": "Upcoming",
-                "Winner": "",
+                "Status": status,
+                "Winner": winner,
             }
         )
 
     quarterfinals = pd.DataFrame(matches, columns=columns)
     if live_matches_df is not None and len(quarterfinals) > 0:
         quarterfinals = apply_live_prediction_results(quarterfinals, live_matches_df)
-    return quarterfinals
+    return apply_prediction_result_overrides(quarterfinals, QUARTERFINAL_RESULT_OVERRIDES)
+
+
+def build_semifinal_prediction_matches(quarterfinal_df, live_matches_df=None):
+    columns = ["Match", "Match ID", "Group", "Date", "Time", "Team A", "Team B", "Status", "Winner"]
+    if len(quarterfinal_df) == 0:
+        return pd.DataFrame(columns=columns)
+
+    matches_by_id = quarterfinal_df.drop_duplicates(subset=["Match ID"]).set_index("Match ID")
+    matches = []
+    for index, pairing in enumerate(SEMIFINAL_PAIRINGS, start=1):
+        left_id = pairing["Left QF Match ID"]
+        right_id = pairing["Right QF Match ID"]
+        if left_id not in matches_by_id.index or right_id not in matches_by_id.index:
+            continue
+
+        left_row = matches_by_id.loc[left_id]
+        right_row = matches_by_id.loc[right_id]
+        team_a = str(left_row.get("Winner", "")).strip() or f"Winner QF-{left_id - 3000}"
+        team_b = str(right_row.get("Winner", "")).strip() or f"Winner QF-{right_id - 3000}"
+        matches.append(
+            {
+                "Match": f"SF-{index}",
+                "Match ID": pairing["Match ID"],
+                "Group": "SF",
+                "Date": "",
+                "Time": "",
+                "Team A": team_a,
+                "Team B": team_b,
+                "Status": "Upcoming",
+                "Winner": "",
+            }
+        )
+
+    semifinals = pd.DataFrame(matches, columns=columns)
+    if live_matches_df is not None and len(semifinals) > 0:
+        semifinals = apply_live_prediction_results(semifinals, live_matches_df)
+    return semifinals
 
 
 def build_prediction_match_catalog(group_matches_df):
@@ -202,4 +279,5 @@ def build_prediction_match_catalog(group_matches_df):
     r32_matches = apply_live_prediction_results(r32_matches, group_matches_df)
     r16_matches = build_round_of_16_prediction_matches(live_matches_df=group_matches_df)
     qf_matches = build_quarterfinal_prediction_matches(r16_matches, live_matches_df=group_matches_df)
-    return pd.concat([r32_matches, r16_matches, qf_matches], ignore_index=True)
+    sf_matches = build_semifinal_prediction_matches(qf_matches, live_matches_df=group_matches_df)
+    return pd.concat([r32_matches, r16_matches, qf_matches, sf_matches], ignore_index=True)

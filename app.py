@@ -614,8 +614,8 @@ def build_round_of_32(qualifiers):
 
 def build_prediction_match_labels(match_catalog):
     match_labels = match_catalog.copy()
-    round_titles = {"R32": "Round of 32", "R16": "Round of 16", "QF": "Quarterfinals"}
-    match_labels["Round Order"] = match_labels["Group"].map({"R32": 0, "R16": 1, "QF": 2}).fillna(99)
+    round_titles = {"R32": "Round of 32", "R16": "Round of 16", "QF": "Quarterfinals", "SF": "Semifinals"}
+    match_labels["Round Order"] = match_labels["Group"].map({"R32": 0, "R16": 1, "QF": 2, "SF": 3}).fillna(99)
     match_labels = match_labels.sort_values(["Round Order", "Match ID"]).copy()
     match_labels["Kickoff"] = match_labels["Group"].map(round_titles).fillna("")
     match_labels["Match"] = match_labels.apply(
@@ -1151,10 +1151,10 @@ with tab3:
     st.markdown(f"<div class='section-title'>{t('tournament_bracket', lang)}</div>", unsafe_allow_html=True)
     saved_bracket = load_bracket()
     expected_qf = pd.DataFrame([
-        {"Match": "QF-1", "Team A": "France", "Team B": "Morocco", "Status": "Upcoming", "Winner": ""},
-        {"Match": "QF-2", "Team A": "Spain", "Team B": "Belgium", "Status": "Upcoming", "Winner": ""},
-        {"Match": "QF-3", "Team A": "Norway", "Team B": "England", "Status": "Upcoming", "Winner": ""},
-        {"Match": "QF-4", "Team A": "Argentina", "Team B": "Switzerland", "Status": "Upcoming", "Winner": ""},
+        {"Match": "QF-1", "Team A": "France", "Team B": "Morocco", "Status": "Finished", "Winner": "France"},
+        {"Match": "QF-2", "Team A": "Spain", "Team B": "Belgium", "Status": "Finished", "Winner": "Spain"},
+        {"Match": "QF-3", "Team A": "Norway", "Team B": "England", "Status": "Finished", "Winner": "England"},
+        {"Match": "QF-4", "Team A": "Argentina", "Team B": "Switzerland", "Status": "Finished", "Winner": "Argentina"},
     ])
 
     def render_round(df, title, key, interactive=True):
@@ -1433,7 +1433,7 @@ with tab7:
         st.markdown(f"<p style='color:#48D8A0;font-weight:700'>{t('playing_as', lang)}: {player} 🎮</p>", unsafe_allow_html=True)
         prediction_result_source = build_prediction_result_source(st.session_state.matches)
         prediction_match_catalog = build_prediction_match_catalog(prediction_result_source)
-        visible_prediction_match_catalog = prediction_match_catalog[prediction_match_catalog["Group"] == "QF"].copy()
+        visible_prediction_match_catalog = prediction_match_catalog[prediction_match_catalog["Group"].isin(["QF", "SF"])].copy()
         prediction_match_labels = build_prediction_match_labels(visible_prediction_match_catalog)
         prediction_match_ids = visible_prediction_match_catalog["Match ID"].tolist()
 
@@ -1515,8 +1515,8 @@ with tab7:
                             [st.session_state.predictions, new_row], ignore_index=True
                         )
 
-        st.markdown("### Quarterfinal Predictions")
-        render_knockout_prediction_cards("QF", "Quarterfinal Predictions")
+        st.markdown("### Semifinal Predictions")
+        render_knockout_prediction_cards("SF", "Semifinal Predictions")
 
         # ── MY PREDICTIONS ────────────────────────────────────────────────────
         st.markdown(t("my_predictions", lang))
@@ -1540,7 +1540,7 @@ with tab7:
     st.session_state.predictions = load_predictions()
     prediction_result_source = build_prediction_result_source(st.session_state.matches)
     prediction_match_catalog = build_prediction_match_catalog(prediction_result_source)
-    visible_prediction_match_catalog = prediction_match_catalog[prediction_match_catalog["Group"] == "QF"].copy()
+    visible_prediction_match_catalog = prediction_match_catalog[prediction_match_catalog["Group"].isin(["QF", "SF"])].copy()
     prediction_match_labels = build_prediction_match_labels(visible_prediction_match_catalog)
     prediction_match_ids = visible_prediction_match_catalog["Match ID"].tolist()
     st.session_state.predictions = refresh_prediction_scores(st.session_state.predictions, prediction_match_catalog)

@@ -180,8 +180,8 @@ def test_live_api_today_matches_include_schedule_fallbacks():
 
 
 def test_prediction_game_orders_matches_by_kickoff_datetime():
-    assert 'round_titles = {"R32": "Round of 32", "R16": "Round of 16", "QF": "Quarterfinals"}' in SOURCE
-    assert 'match_labels["Round Order"] = match_labels["Group"].map({"R32": 0, "R16": 1, "QF": 2}).fillna(99)' in SOURCE
+    assert 'round_titles = {"R32": "Round of 32", "R16": "Round of 16", "QF": "Quarterfinals", "SF": "Semifinals"}' in SOURCE
+    assert 'match_labels["Round Order"] = match_labels["Group"].map({"R32": 0, "R16": 1, "QF": 2, "SF": 3}).fillna(99)' in SOURCE
     assert 'match_labels = match_labels.sort_values(["Round Order", "Match ID"]).copy()' in SOURCE
     assert 'grid.sort_values(["Date", "Match ID"])' not in SOURCE
 
@@ -247,6 +247,10 @@ def test_bracket_starts_with_confirmed_quarterfinals_and_keeps_later_previews():
     assert 'render_round(qf, "🏅 QUARTERFINALS", "qf", interactive=True)' in SOURCE
     assert 'render_round(advance_round(qf), "🔥 SEMIFINALS", "sf_preview", interactive=False)' in SOURCE
     assert 'render_round(advance_round(sf_source), "🏆 FINAL", "final_preview", interactive=False)' in SOURCE
+    assert '"Status": "Finished", "Winner": "France"' in SOURCE
+    assert '"Status": "Finished", "Winner": "Spain"' in SOURCE
+    assert '"Status": "Finished", "Winner": "England"' in SOURCE
+    assert '"Status": "Finished", "Winner": "Argentina"' in SOURCE
     assert '"🥊 ROUND OF 32"' not in SOURCE
     assert '"⚔️ ROUND OF 16"' not in SOURCE
 
@@ -258,7 +262,7 @@ def test_round_of_32_uses_hardcoded_matchups():
     assert 'pairs.append({"Match": f"R32-{i//2+1}", "Team A": q.loc[i, "Team"], "Team B": q.loc[i+1, "Team"], "Status": "Upcoming", "Winner": ""})' not in SOURCE
 
 
-def test_predictions_page_only_shows_quarterfinal_knockout_section():
+def test_predictions_page_shows_completed_quarterfinals_and_open_semifinals():
     assert "from prediction_matches import (" in SOURCE
     assert "ROUND_OF_32_PREDICTION_MATCHES" in SOURCE
     assert "build_prediction_match_catalog" in SOURCE
@@ -267,9 +271,10 @@ def test_predictions_page_only_shows_quarterfinal_knockout_section():
     assert "build_live_knockout_prediction_matches()" in SOURCE
     assert 'prediction_result_source = build_prediction_result_source(st.session_state.matches)' in SOURCE
     assert 'prediction_match_catalog = build_prediction_match_catalog(prediction_result_source)' in SOURCE
-    assert 'visible_prediction_match_catalog = prediction_match_catalog[prediction_match_catalog["Group"] == "QF"].copy()' in SOURCE
+    assert 'visible_prediction_match_catalog = prediction_match_catalog[prediction_match_catalog["Group"].isin(["QF", "SF"])].copy()' in SOURCE
     assert 'st.markdown("### Round of 32 Predictions")' not in SOURCE
-    assert 'st.markdown("### Quarterfinal Predictions")' in SOURCE
+    assert 'st.markdown("### Semifinal Predictions")' in SOURCE
+    assert 'render_knockout_prediction_cards("SF", "Semifinal Predictions")' in SOURCE
     assert 'knockout_options = [pick_placeholder, match["Team A"], match["Team B"], "Draw"]' in SOURCE
 
 
@@ -298,7 +303,7 @@ def test_bracket_page_uses_persisted_store():
 def test_bracket_page_does_not_rebuild_earlier_rounds():
     assert "expected_r32 = build_round_of_32(qualifiers)" not in SOURCE
     assert "r32_live_matches = pd.DataFrame(ROUND_OF_32_PREDICTION_MATCHES)" not in SOURCE
-    assert 'visible_prediction_match_catalog = prediction_match_catalog[prediction_match_catalog["Group"] == "QF"].copy()' in SOURCE
+    assert 'visible_prediction_match_catalog = prediction_match_catalog[prediction_match_catalog["Group"].isin(["QF", "SF"])].copy()' in SOURCE
 
 
 def test_leaderboard_only_counts_active_prediction_matches():
